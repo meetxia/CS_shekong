@@ -1,5 +1,10 @@
 <template>
   <div class="activation-page container page">
+    <!-- 返回首页按钮 -->
+    <button @click="goHome" class="btn-back-home">
+      &lt; 返回首页
+    </button>
+
     <div class="content">
       <!-- 标题区域 -->
       <div class="header fade-in">
@@ -82,6 +87,10 @@ const handleInput = (e) => {
   activationCode.value = formatActivationCode(e.target.value)
 }
 
+const goHome = () => {
+  router.push('/')
+}
+
 const handleStart = async () => {
   if (!isValid.value) {
     error.value = '请输入正确格式的激活码'
@@ -123,6 +132,24 @@ const handleStart = async () => {
   align-items: center;
   min-height: 100vh;
   padding: 60px 20px 40px;
+  position: relative;
+}
+
+.btn-back-home {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  padding: 8px 12px;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.btn-back-home:hover {
+  color: var(--primary);
+  transform: translateX(-2px);
 }
 
 .content {

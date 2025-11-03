@@ -3,12 +3,17 @@
     <!-- 顶部导航 -->
     <div class="top-nav">
       <button @click="goBack" class="btn-back">
-        &lt; 返回
+        &lt; 返回测评
       </button>
       <span class="nav-title text-body">测评报告</span>
-      <button @click="showColorPicker = true" class="btn-color">
-        切换配色
-      </button>
+      <div class="nav-actions">
+        <button @click="goHome" class="btn-home" title="返回首页">
+          <span class="iconify" data-icon="mdi:home" data-width="20" data-height="20"></span>
+        </button>
+        <button @click="showColorPicker = true" class="btn-color">
+          切换配色
+        </button>
+      </div>
     </div>
 
     <!-- 滚动内容区 -->
@@ -243,6 +248,10 @@ const goBack = () => {
   router.push('/assessment')
 }
 
+const goHome = () => {
+  router.push('/')
+}
+
 const formatDate = (dateString) => {
   return dayjs(dateString).format('YYYY年MM月DD日')
 }
@@ -387,21 +396,47 @@ onMounted(() => {
 }
 
 .btn-back,
-.btn-color {
+.btn-color,
+.btn-home {
   background: transparent;
   color: var(--text-body);
   font-size: 14px;
   padding: 8px 12px;
+  transition: all 0.3s ease;
 }
 
 .btn-back:hover,
-.btn-color:hover {
+.btn-color:hover,
+.btn-home:hover {
+  color: var(--primary);
+  transform: scale(1.05);
+}
+
+.btn-home {
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-home .iconify {
+  color: var(--text-body);
+  transition: color 0.3s ease;
+}
+
+.btn-home:hover .iconify {
   color: var(--primary);
 }
 
 .nav-title {
   font-size: 16px;
   font-weight: 600;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* 滚动内容 */
@@ -846,11 +881,12 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(2px);
 }
 
 .color-picker-content {
@@ -859,6 +895,8 @@ onMounted(() => {
   padding: 24px;
   width: 90%;
   max-width: 400px;
+  box-shadow: 0 8px 32px var(--shadow-deep);
+  border: 1px solid var(--border);
 }
 
 .picker-title {
@@ -866,6 +904,7 @@ onMounted(() => {
   font-weight: 600;
   margin-bottom: 20px;
   text-align: center;
+  color: var(--text-title);
 }
 
 .color-schemes {
@@ -886,17 +925,21 @@ onMounted(() => {
 
 .scheme-card:hover {
   border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow-medium);
 }
 
 .scheme-card.active {
   border-color: var(--primary);
   background: var(--bg-section);
+  box-shadow: 0 4px 12px var(--shadow-medium);
 }
 
 .scheme-name {
   font-size: 14px;
   margin-bottom: 12px;
-  color: var(--text-body);
+  color: var(--text-title);
+  font-weight: 600;
 }
 
 .scheme-preview {
@@ -913,9 +956,18 @@ onMounted(() => {
 .btn-cancel {
   padding: 10px 24px;
   background: var(--bg-section);
-  color: var(--text-body);
+  color: var(--text-title);
   border-radius: 8px;
   font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+  background: var(--bg-card);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 /* 响应式 */

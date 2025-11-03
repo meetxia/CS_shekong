@@ -30,11 +30,11 @@
             @click="selectOption(option.id)"
           >
             <div class="option-radio">
-              <div v-if="answers[question.id] === option.id" class="radio-checked">◉</div>
-              <div v-else class="radio-unchecked">○</div>
+              <span v-if="answers[question.id] === option.id" class="iconify radio-checked" data-icon="mdi:circle" data-width="20" data-height="20"></span>
+              <span v-else class="iconify radio-unchecked" data-icon="mdi:circle-outline" data-width="20" data-height="20"></span>
             </div>
             <span class="option-text">{{ option.text }}</span>
-            <div v-if="answers[question.id] === option.id" class="option-check">✓</div>
+            <span v-if="answers[question.id] === option.id" class="iconify option-check" data-icon="mdi:check" data-width="20" data-height="20"></span>
           </div>
         </div>
       </div>
@@ -310,7 +310,12 @@ onMounted(() => {
 
 .option-radio {
   flex-shrink: 0;
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radio-checked {
   color: var(--primary);
 }
 
@@ -332,8 +337,11 @@ onMounted(() => {
 
 .option-check {
   flex-shrink: 0;
-  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--primary);
+  font-weight: bold;
 }
 
 /* 底部操作栏 */

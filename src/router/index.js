@@ -3,6 +3,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   {
     path: '/',
+    name: 'Home',
+    component: () => import('../views/HomePage.vue'),
+    meta: { title: '首页' }
+  },
+  {
+    path: '/activation',
     name: 'Activation',
     component: () => import('../views/ActivationPage.vue'),
     meta: { title: '激活测评' }
@@ -15,7 +21,7 @@ const routes = [
     beforeEnter: (to, from, next) => {
       const isActivated = localStorage.getItem('test_activated')
       if (!isActivated) {
-        next('/')
+        next('/activation')
       } else {
         next()
       }
