@@ -1,0 +1,152 @@
+/* 配色方案1：雪尽霜余（浅色） */
+.scheme1-light {
+  --primary: #BA9B92;
+  --primary-hover: #A88B82;
+  --primary-light: #C4B0A8;
+  --secondary: #987F74;
+  --neutral: #C4C0C1;
+  
+  --bg-main: #F0ECEB;
+  --bg-card: #FFFFFF;
+  --bg-section: #F8F6F5;
+  
+  --text-title: #2C2422;
+  --text-body: #5C5452;
+  --text-secondary: #8C8482;
+  --text-disabled: #C4C0C1;
+  
+  --success: #91A88E;
+  --warning: #D4A574;
+  --error: #C8837B;
+  --info: #8C9CAA;
+  
+  --border: #C4C0C1;
+  --shadow: rgba(44, 36, 34, 0.08);
+  --shadow-medium: rgba(44, 36, 34, 0.12);
+  --shadow-deep: rgba(44, 36, 34, 0.16);
+}
+
+/* 配色方案2：雪尽霜余（深色） */
+.scheme1-dark {
+  --primary: #D4B5AC;
+  --primary-hover: #C4A59C;
+  --primary-light: #E0C7BE;
+  --secondary: #B09286;
+  --neutral: #A8A4A2;
+  
+  --bg-main: #1C1816;
+  --bg-card: #2A2624;
+  --bg-section: #35322F;
+  
+  --text-title: #EAE6E3;
+  --text-body: #C4BFB9;
+  --text-secondary: #8C8784;
+  --text-disabled: #5C5854;
+  
+  --success: #A8BFA5;
+  --warning: #D9B98C;
+  --error: #D49B93;
+  --info: #9DAAB7;
+  
+  --border: #5C5854;
+  --shadow: rgba(0, 0, 0, 0.2);
+  --shadow-medium: rgba(0, 0, 0, 0.3);
+  --shadow-deep: rgba(0, 0, 0, 0.4);
+}
+
+/* 配色方案3：芩江初雪（浅色） */
+.scheme2-light {
+  --primary: #8BA995;
+  --primary-hover: #7A9884;
+  --primary-light: #A1C1A1;
+  --secondary: #A1C1A1;
+  --neutral: #D2C4B2;
+  
+  --bg-main: #DFDAD3;
+  --bg-card: #FFFFFF;
+  --bg-section: #EBE7E0;
+  
+  --text-title: #2C3428;
+  --text-body: #4A5446;
+  --text-secondary: #7A826E;
+  --text-disabled: #B8B5A8;
+  
+  --success: #8BA995;
+  --warning: #C8B699;
+  --error: #B8857A;
+  --info: #84A3AA;
+  
+  --border: #D2C4B2;
+  --shadow: rgba(44, 52, 40, 0.08);
+  --shadow-medium: rgba(44, 52, 40, 0.12);
+  --shadow-deep: rgba(44, 52, 40, 0.16);
+}
+
+/* 配色方案4：芩江初雪（深色） */
+.scheme2-dark {
+  --primary: #A8C9A8;
+  --primary-hover: #98B998;
+  --primary-light: #B8D4B8;
+  --secondary: #B8D4B8;
+  --neutral: #C8BCA8;
+  
+  --bg-main: #1A1E1A;
+  --bg-card: #252A25;
+  --bg-section: #30352E;
+  
+  --text-title: #E5E8E3;
+  --text-body: #BFC5BA;
+  --text-secondary: #8C9488;
+  --text-disabled: #5A5E58;
+  
+  --success: #A8C9A8;
+  --warning: #D4C4A8;
+  --error: #C89F95;
+  --info: #94AEB8;
+  
+  --border: #5A5E58;
+  --shadow: rgba(0, 0, 0, 0.2);
+  --shadow-medium: rgba(0, 0, 0, 0.3);
+  --shadow-deep: rgba(0, 0, 0, 0.4);
+}
+
+/* 应用配色变量 */
+#app {
+  background-color: var(--bg-main);
+  color: var(--text-body);
+}
+
+.card {
+  background-color: var(--bg-card);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+.section-bg {
+  background-color: var(--bg-section);
+}
+
+.text-title {
+  color: var(--text-title);
+}
+
+.text-body {
+  color: var(--text-body);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.border-color {
+  border-color: var(--border);
+}
+
