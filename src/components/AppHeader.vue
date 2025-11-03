@@ -1,5 +1,5 @@
 <template>
-  <header class="app-header">
+  <header class="app-header" :class="{ 'assessment-layout': currentPath === '/assessment' }">
     <div class="header-container">
       <!-- 左侧：Logo/标题 -->
       <div class="header-left">
@@ -63,73 +63,56 @@
       </div>
     </div>
 
-    <!-- 配色选择器弹窗 -->
-    <transition name="fade">
-      <div v-if="showColorPicker" class="color-picker-modal" @click="showColorPicker = false">
-        <div class="color-picker-content" @click.stop>
-          <h3 class="picker-title">选择配色方案</h3>
-          <div class="color-schemes">
-            <div
-              v-for="scheme in colorSchemes"
-              :key="scheme.id"
-              class="scheme-item"
-              :class="{ active: currentScheme === scheme.id }"
-              @click="selectScheme(scheme.id)"
-            >
-              <div class="scheme-preview" :style="{ background: scheme.primary }"></div>
-              <div class="scheme-info">
+    <!-- 配色选择器弹窗（Telelport到body，避免被Header影响定位） -->
+    <teleport to="body">
+      <transition name="fade">
+        <div v-if="showColorPicker" class="color-picker-modal" @click="showColorPicker = false">
+          <div class="color-picker-content" @click.stop>
+            <h3 class="picker-title">选择配色方案</h3>
+            <div class="color-schemes minimal">
+              <div
+                v-for="scheme in colorSchemes"
+                :key="scheme.id"
+                class="scheme-item minimal"
+                :class="{ active: currentScheme === scheme.id }"
+                @click="selectScheme(scheme.id)"
+              >
                 <div class="scheme-name">{{ scheme.name }}</div>
-                <div v-if="currentScheme === scheme.id" class="scheme-check">
-                  <span class="iconify" data-icon="mdi:check-circle" data-width="18" data-height="18"></span>
+                <div class="scheme-chip">
+                  <span class="surface" :class="scheme.id"></span>
+                  <span class="primary" :style="{ background: scheme.primary }"></span>
+                  <span v-if="currentScheme === scheme.id" class="check">
+                    <span class="iconify" data-icon="mdi:check" data-width="16" data-height="16"></span>
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
+    </teleport>
 
-    <!-- 移动端菜单 -->
-    <transition name="overlay-fade">
-      <div v-if="showMobileMenu" class="mobile-menu" @click="showMobileMenu = false">
-        <div class="mobile-menu-content" @click.stop>
-          <div class="mobile-menu-header">
-            <span class="menu-title">菜单</span>
-            <button @click="showMobileMenu = false" class="close-btn">
-              <span class="iconify" data-icon="mdi:close" data-width="24" data-height="24"></span>
-            </button>
-          </div>
-          <nav class="mobile-nav">
-            <router-link 
-              to="/" 
-              class="mobile-nav-item" 
-              @click="showMobileMenu = false"
-            >
-              <span class="iconify" data-icon="mdi:home" data-width="20" data-height="20"></span>
+    <!-- 移动端菜单（Popover 下拉卡片） -->
+    <teleport to="body">
+      <transition name="overlay-fade">
+        <div v-if="showMobileMenu" class="mobile-overlay" @click="showMobileMenu = false">
+          <div class="mobile-popover" role="menu" @click.stop>
+            <router-link to="/" class="popover-item" @click="showMobileMenu = false">
+              <span class="iconify" data-icon="mdi:home" data-width="18" data-height="18"></span>
               <span>首页</span>
             </router-link>
-            <router-link 
-              v-if="hasActivation" 
-              to="/assessment" 
-              class="mobile-nav-item" 
-              @click="showMobileMenu = false"
-            >
-              <span class="iconify" data-icon="mdi:clipboard-text" data-width="20" data-height="20"></span>
-              <span>开始测评</span>
+            <router-link to="/assessment" class="popover-item" @click="showMobileMenu = false">
+              <span class="iconify" data-icon="mdi:clipboard-text" data-width="18" data-height="18"></span>
+              <span>测评</span>
             </router-link>
-            <router-link 
-              v-if="hasReport" 
-              to="/report" 
-              class="mobile-nav-item" 
-              @click="showMobileMenu = false"
-            >
-              <span class="iconify" data-icon="mdi:chart-box" data-width="20" data-height="20"></span>
-              <span>查看报告</span>
+            <router-link v-if="hasReport" to="/report" class="popover-item" @click="showMobileMenu = false">
+              <span class="iconify" data-icon="mdi:chart-box" data-width="18" data-height="18"></span>
+              <span>报告</span>
             </router-link>
-          </nav>
+          </div>
         </div>
-      </div>
-    </transition>
+      </transition>
+    </teleport>
   </header>
 </template>
 
@@ -191,6 +174,7 @@ onBeforeUnmount(() => {
   top: 0;
   left: 0;
   right: 0;
+  height: 56px; /* 统一导航高度，供下层页面计算可用高度 */
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 2px 8px var(--shadow);
@@ -372,11 +356,14 @@ onBeforeUnmount(() => {
 
 .color-picker-content {
   background: var(--bg-card);
-  border-radius: 16px;
-  padding: 24px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 8px 32px var(--shadow-deep);
+  border-radius: 12px;
+  padding: 16px;
+  width: calc(100% - 32px);
+  max-width: 380px;
+  max-height: 78vh;
+  overflow: auto;
+  box-shadow: 0 6px 24px var(--shadow-deep);
+  border: 1px solid var(--border);
 }
 
 .picker-title {
@@ -392,14 +379,23 @@ onBeforeUnmount(() => {
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
+.color-schemes.minimal { grid-template-columns: 1fr; gap: 8px; }
 
 .scheme-item {
-  padding: 16px;
+  box-sizing: border-box;
+  padding: 14px;
   border: 2px solid var(--border);
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   background: var(--bg-section);
+}
+.scheme-item.minimal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 10px;
 }
 
 .scheme-item:hover {
@@ -411,15 +407,36 @@ onBeforeUnmount(() => {
 .scheme-item.active {
   border-color: var(--primary);
   background: var(--bg-card);
-  box-shadow: 0 4px 16px var(--shadow-medium);
+  box-shadow: 0 2px 12px var(--shadow-medium);
 }
 
-.scheme-preview {
-  width: 100%;
-  height: 40px;
+.scheme-chip {
+  position: relative;
+  width: 86px;
+  height: 28px;
   border-radius: 8px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  background: var(--bg-section);
+  border: 1px solid var(--border);
+}
+.scheme-chip .surface {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+}
+.scheme-chip .primary {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 36%;
+}
+.scheme-chip .check {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-title);
 }
 
 .scheme-info {
@@ -438,98 +455,50 @@ onBeforeUnmount(() => {
   color: var(--primary);
 }
 
-/* 移动端菜单 */
-.mobile-menu {
+/* 预览 surface 背景色与深浅方案匹配 */
+.surface.scheme1-light { background: #FFFFFF; }
+.surface.scheme1-dark { background: #2A2624; }
+.surface.scheme2-light { background: #FFFFFF; }
+.surface.scheme2-dark { background: #252A25; }
+
+/* 移动端下拉菜单（Popover） */
+.mobile-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  inset: 0;
   z-index: 1000;
-  backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: flex-end;
 }
 
-.mobile-menu-content {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 280px;
-  max-width: 80%;
+.mobile-popover {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 56px);
+  right: 12px;
+  width: 180px;
   background: var(--bg-card);
-  box-shadow: -4px 0 16px var(--shadow-deep);
-  display: flex;
-  flex-direction: column;
-  transform: translateX(0);
-  will-change: transform, opacity;
-  animation: panel-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.mobile-menu-header {
-  padding: 20px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.menu-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-title);
-}
-
-.close-btn {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 8px;
   color: var(--text-body);
-  cursor: pointer;
-  transition: all 0.3s ease;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px var(--shadow-deep);
+  padding: 8px;
+  animation: pop-in 160ms ease;
 }
 
-.close-btn:hover {
-  background: var(--bg-section);
-  color: var(--primary);
-}
-
-.mobile-nav {
-  flex: 1;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mobile-nav-item {
+.popover-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 10px;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 8px;
   text-decoration: none;
   color: var(--text-body);
-  font-size: 15px;
-  font-weight: 500;
-  transition: all 0.3s ease;
+  font-size: 14px;
 }
 
-.mobile-nav-item:hover {
+.popover-item:hover { 
   background: var(--bg-section);
   color: var(--primary);
 }
 
-.mobile-nav-item .iconify {
-  color: var(--primary);
-}
+.popover-item .iconify { color: var(--primary); }
 
 /* 响应式 */
 .desktop-only {
@@ -538,6 +507,14 @@ onBeforeUnmount(() => {
 
 .mobile-only {
   display: none;
+}
+
+/* 测评页面布局：桌面端17%留白 */
+@media (min-width: 769px) {
+  .app-header.assessment-layout .header-container {
+    padding-left: 22%;
+    padding-right: 22%;
+  }
 }
 
 @media (max-width: 768px) {
@@ -555,6 +532,20 @@ onBeforeUnmount(() => {
 
   .logo-text {
     font-size: 15px;
+  }
+
+  /* 小屏下配色选择器单列，避免挤压 */
+  .color-schemes {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 桌面端：与页面内容保持一致的左右留白（约 17%） */
+@media (min-width: 769px) {
+  .header-container {
+    max-width: none;
+    padding-left: 22%;
+    padding-right: 22%;
   }
 }
 
@@ -580,6 +571,11 @@ onBeforeUnmount(() => {
 @keyframes panel-in {
   from { transform: translateX(16px); opacity: 0.8; }
   to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes pop-in {
+  from { transform: translateY(-6px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 </style>
 

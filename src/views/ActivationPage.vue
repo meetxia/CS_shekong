@@ -17,6 +17,12 @@
       <div class="intro fade-in" style="animation-delay: 0.1s">
         <p class="intro-text text-body">基于SAS社交焦虑量表改良</p>
         <p class="intro-text text-body">30题 · 5-8分钟 · 专业分析</p>
+        <div class="value-cta">
+          <span class="badge">7天有效</span>
+          <span class="badge">每天3次</span>
+          <span class="badge">最多21次</span>
+          <span class="badge">可分享给朋友</span>
+        </div>
       </div>
 
       <!-- 激活码输入卡片 -->
@@ -66,12 +72,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { formatActivationCode, validateActivationCode, verifyActivationCode, saveActivation } from '@/utils/activation'
 import { showToast } from '@/utils/toast'
 
 const router = useRouter()
+const route = useRoute()
 
 const activationCode = ref('')
 const isFocused = ref(false)
@@ -122,6 +129,13 @@ const handleStart = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  const code = route.query.code
+  if (typeof code === 'string' && code) {
+    activationCode.value = formatActivationCode(code)
+  }
+})
 </script>
 
 <style scoped>
@@ -196,6 +210,22 @@ const handleStart = async () => {
 .intro-text {
   font-size: 16px;
   line-height: 1.8;
+}
+
+.value-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.badge {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--bg-section);
+  border: 1px solid var(--border);
 }
 
 /* 输入卡片 */

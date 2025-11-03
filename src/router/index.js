@@ -31,7 +31,7 @@ const routes = [
     path: '/report',
     name: 'Report',
     component: () => import('../views/ReportPage.vue'),
-    meta: { title: '测评报告' },
+    meta: { title: '测评报告', hideHeader: true },
     beforeEnter: (to, from, next) => {
       const hasReport = localStorage.getItem('test_report')
       if (!hasReport) {

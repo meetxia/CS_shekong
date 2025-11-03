@@ -37,39 +37,39 @@
             <span v-if="answers[question.id] === option.id" class="iconify option-check" data-icon="mdi:check" data-width="20" data-height="20"></span>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- 底部操作栏 -->
-    <div class="action-bar section-bg">
-      <button
-        @click="prevQuestion"
-        :disabled="currentQuestion === 1"
-        class="btn-nav"
-      >
-        上一题
-      </button>
-      
-      <button
-        v-if="currentQuestion < 30"
-        @click="nextQuestion"
-        class="btn-nav btn-primary"
-      >
-        下一题
-      </button>
-      
-      <button
-        v-else
-        @click="submitAssessment"
-        :disabled="submitting"
-        class="btn-nav btn-primary"
-      >
-        <span v-if="!submitting">提交测评</span>
-        <span v-else class="loading-text">
-          <span class="loading"></span>
-          生成报告中...
-        </span>
-      </button>
+        <!-- 操作按钮：题目下方约50px -->
+        <div class="action-bar in-content">
+          <button
+            @click="prevQuestion"
+            :disabled="currentQuestion === 1"
+            class="btn-nav"
+          >
+            上一题
+          </button>
+          
+          <button
+            v-if="currentQuestion < 30"
+            @click="nextQuestion"
+            class="btn-nav btn-primary"
+          >
+            下一题
+          </button>
+          
+          <button
+            v-else
+            @click="submitAssessment"
+            :disabled="submitting"
+            class="btn-nav btn-primary"
+          >
+            <span v-if="!submitting">提交测评</span>
+            <span v-else class="loading-text">
+              <span class="loading"></span>
+              生成报告中...
+            </span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -80,6 +80,7 @@ import { useRouter } from 'vue-router'
 import { questions } from '@/data/questions'
 import { generateReport } from '@/utils/scoring'
 import { showToast } from '@/utils/toast'
+import { recordOneUsage, getActivationStatus } from '@/utils/activation'
 
 const router = useRouter()
 
@@ -179,8 +180,37 @@ const submitAssessment = async () => {
     
     // 保存报告
     localStorage.setItem('test_report', JSON.stringify(report))
-    
-    showToast('测评完成！', 1500, 'success')
+
+    // 写入本地历史记录（仅保存在当前设备浏览器中）
+    try {
+      const raw = localStorage.getItem('test_history')
+      const history = raw ? JSON.parse(raw) : []
+      history.unshift({
+        date: new Date().toISOString(),
+        totalScore: report.totalScore,
+        levelName: report.level.name,
+        typeName: report.type.name
+      })
+      // 只保留最近20条，避免无限增长
+      localStorage.setItem('test_history', JSON.stringify(history.slice(0, 20)))
+    } catch (e) {
+      console.warn('保存历史记录失败', e)
+    }
+
+    // 记录一次使用并提示剩余次数/有效期
+    const rec = recordOneUsage()
+    if (rec && rec.recorded) {
+      showToast(`测试完成！今日剩余${rec.remainingToday}次 · 剩余${rec.daysLeft}天`, 2200, 'success')
+    } else {
+      const s = getActivationStatus()
+      if (s.expired) {
+        showToast('激活码已过期，完成本次后无法继续使用', 2500, 'warning')
+      } else if (s.remainingToday === 0) {
+        showToast('今日3次已用完，明天0点自动恢复', 2200, 'warning')
+      } else {
+        showToast('测评完成！', 1500, 'success')
+      }
+    }
     
     // 跳转到报告页
     setTimeout(() => {
@@ -217,17 +247,24 @@ onMounted(() => {
 .assessment-page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: calc(100vh - 56px); /* 扣除导航高度，消除被挤压 */
   overflow: hidden;
+  background: var(--bg-main);
 }
 
 /* 进度栏 */
 .progress-header {
   padding: 16px 20px;
-  background: var(--bg-card);
-  box-shadow: 0 2px 8px var(--shadow);
+  margin-top: 5%;
   position: relative;
   z-index: 10;
+}
+
+/* 桌面端：进度栏也居中显示，左右留白17% */
+@media (min-width: 769px) {
+  .progress-header {
+    padding: 16px 25%;
+  }
 }
 
 .progress-info {
@@ -254,12 +291,22 @@ onMounted(() => {
 
 /* 内容区域 */
 .content-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 40px 20px;
+  flex: 0.8;
+  overflow-y: hidden; /* 禁止滚动 */
+  padding: 12px 20px 0; /* 顶部留白更小，去掉底部额外间距 */
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: center; /* 垂直居中题目与选项 */
+  background: var(--bg-main);
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+/* 桌面端：内容区域左右留白17%，内容宽度65% */
+@media (min-width: 769px) {
+  .content-area {
+    padding: 12px 17% 0;
+  }
 }
 
 .question-container {
@@ -269,10 +316,10 @@ onMounted(() => {
 }
 
 .question-text {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
-  line-height: 1.6;
-  margin-bottom: 32px;
+  line-height: 1.3;
+  margin-bottom: 40px;
   text-align: center;
 }
 
@@ -280,14 +327,15 @@ onMounted(() => {
 .options-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .option-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 20px;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 20px 16px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -305,7 +353,7 @@ onMounted(() => {
 .option-item.selected {
   background: var(--bg-section);
   border: 2px solid var(--primary);
-  padding: 19px; /* 补偿边框 */
+  padding: 9px 15px; /* 补偿边框 */
 }
 
 .option-radio {
@@ -325,7 +373,7 @@ onMounted(() => {
 
 .option-text {
   flex: 1;
-  font-size: 18px;
+  font-size: 16px;
   color: var(--text-body);
   line-height: 1.5;
 }
@@ -346,31 +394,52 @@ onMounted(() => {
 
 /* 底部操作栏 */
 .action-bar {
-  padding: 16px 20px;
+  padding: 12px 20px;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   gap: 12px;
-  box-shadow: 0 -2px 8px var(--shadow);
+}
+
+.action-bar.in-content {
+  margin-top: 50px; /* 题目下方约50px */
+}
+
+/* 桌面端：底部操作栏也居中显示，左右留白17% */
+@media (min-width: 769px) {
+  .action-bar { padding: 12px 17%; }
 }
 
 .btn-nav {
   flex: 1;
   height: 48px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 16px;
-  font-weight: 600;
-  background: var(--bg-card);
-  color: var(--text-body);
+  font-weight: 700;
+  background: var(--bg-section); /* 与背景拉开层级 */
+  color: var(--text-title);
   border: 1px solid var(--border);
 }
 
 .btn-nav:not(:disabled):hover {
-  background: var(--bg-section);
+  background: rgba(var(--primary-rgb), 0.12);
+  border-color: var(--primary);
 }
 
 .btn-nav:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* 主按钮配色（更醒目） */
+.btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(var(--primary-rgb), 0.25);
+}
+
+.btn-primary:not(:disabled):hover {
+  filter: brightness(0.95);
 }
 
 .loading-text {
@@ -380,19 +449,23 @@ onMounted(() => {
   gap: 8px;
 }
 
-/* 响应式 */
+/* 响应式 - 移动端优化观感 */
 @media (max-width: 480px) {
+  .content-area { padding: 16px; }
+
   .question-text {
-    font-size: 20px;
+    font-size: 18px;
+    line-height: 1.35;
+    margin-bottom: 30px;
   }
-  
-  .option-text {
-    font-size: 16px;
-  }
-  
-  .content-area {
-    padding: 24px 16px;
-  }
+
+  .options-list { gap: 8px; }
+
+  .option-item { padding: 14px; margin-bottom: 8px; }
+  .option-text { font-size: 15px; }
+
+  .action-bar.in-content { margin-top: 28px; }
+  .btn-nav { height: 44px; font-size: 15px; border-radius: 10px; }
 }
 </style>
 

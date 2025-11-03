@@ -13,12 +13,19 @@
         <button @click="showColorPicker = true" class="btn-color">
           切换配色
         </button>
+        <button @click="openShare" class="btn-color" title="分享结果">
+          🔗 分享结果
+        </button>
       </div>
     </div>
 
     <!-- 滚动内容区 -->
     <div class="content-scroll">
       <div v-if="report" class="report-content container">
+        <!-- 顶部角标：激活码剩余信息 -->
+        <div v-if="status" class="status-badge">
+          <span>激活码剩余：{{ status.daysLeft }}天 · 今日：{{ status.remainingToday }}/{{ status.dailyLimit }}</span>
+        </div>
         <!-- 1. 总分卡片 -->
         <div class="score-card gradient-card fade-in">
           <h2 class="score-title">社恐程度评估结果</h2>
@@ -112,6 +119,12 @@
             <h4 class="subsection-title text-title">重新认识你的社恐</h4>
             <p class="text-body">{{ report.type.positiveReframe }}</p>
           </div>
+
+          <!-- 情绪化金句：写给你的信 -->
+          <div class="type-section section-bg" style="margin-top: 16px;">
+            <h4 class="subsection-title text-title">💌 写给{{ report.type.name }}的你</h4>
+            <p class="text-body" v-html="letterContent"></p>
+          </div>
         </div>
 
         <!-- 5. 改善建议 -->
@@ -202,6 +215,45 @@
           </ul>
           <div class="footer-text text-disabled">数据安全 · 隐私保护 · 专业可信</div>
         </div>
+
+        <!-- 7. 你的测试历史（只保存在本设备） -->
+        <div class="section-card card fade-in" style="animation-delay: 0.55s">
+          <h3 class="section-title text-title">你的测试历史</h3>
+          <p class="text-secondary small-note">提示：历史记录只保存在本设备的浏览器中，如果切换设备或清除浏览器数据，历史记录将不会保留。</p>
+          <div v-if="history.length > 0" class="history-list">
+            <div v-for="(h, idx) in history" :key="idx" class="history-item">
+              <div class="history-date">{{ dayjs(h.date).format('YYYY.MM.DD') }}</div>
+              <div class="history-score">{{ h.totalScore }}分</div>
+              <div class="history-level">{{ h.levelName }}</div>
+              <div class="history-type">{{ h.typeName }}</div>
+            </div>
+            <div v-if="history.length >= 2" class="history-summary text-title">
+              <span>最近进步：{{ progressText }}</span>
+            </div>
+          </div>
+          <div v-else class="text-secondary">暂无历史记录</div>
+        </div>
+
+        <!-- 8. 你 vs 常模 -->
+        <div class="section-card card fade-in" style="animation-delay: 0.6s">
+          <h3 class="section-title text-title">你 vs 常模</h3>
+          <div class="norm-box">
+            <div class="norm-row"><span class="label">你的总分</span><span class="value">{{ report.totalScore }}分</span></div>
+            <div class="norm-row"><span class="label">18-30岁平均</span><span class="value">72分</span></div>
+            <div class="norm-row"><span class="label">差异</span><span class="value" :class="{ up: report.totalScore-72>0, down: report.totalScore-72<=0 }">{{ diffText }}</span></div>
+            <div class="norm-note text-secondary">常模为示例参考值，后续可根据样本更新。</div>
+          </div>
+        </div>
+
+        <!-- 9. 下一步行动 -->
+        <div class="section-card card fade-in" style="animation-delay: 0.65s">
+          <h3 class="section-title text-title">下一步行动</h3>
+          <div class="next-actions">
+            <button class="btn-primary next-btn" @click="goRetest">再测一次（建议2-3天后）</button>
+            <button class="btn-secondary next-btn" @click="openShareActivation">分享激活码给好友</button>
+            <button class="next-btn" @click="openShare">分享结果到小红书</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -209,16 +261,19 @@
     <div v-if="showColorPicker" class="color-picker-modal" @click="showColorPicker = false">
       <div class="color-picker-content" @click.stop>
         <h3 class="picker-title text-title">选择配色方案</h3>
-        <div class="color-schemes">
+        <div class="color-schemes minimal">
           <div
             v-for="scheme in colorSchemes"
             :key="scheme.id"
-            class="scheme-card"
+            class="scheme-card minimal"
             :class="{ 'active': currentScheme === scheme.id }"
             @click="changeColorScheme(scheme.id)"
           >
             <div class="scheme-name">{{ scheme.name }}</div>
-            <div class="scheme-preview" :style="{ backgroundColor: scheme.primary }"></div>
+            <div class="scheme-chip">
+              <span class="surface" :class="scheme.id"></span>
+              <span class="primary" :style="{ background: scheme.primary }"></span>
+            </div>
           </div>
         </div>
         <div class="picker-actions">
@@ -235,6 +290,8 @@ import { useRouter } from 'vue-router'
 import { useColorScheme } from '@/composables/useColorScheme'
 import * as echarts from 'echarts'
 import dayjs from 'dayjs'
+import { showShareModal } from '@/utils/shareCard'
+import { getActivationStatus, getActivationCode, generateActivationShareLink } from '@/utils/activation'
 
 const router = useRouter()
 const { currentScheme, colorSchemes, setColorScheme } = useColorScheme()
@@ -243,6 +300,11 @@ const report = ref(null)
 const radarChart = ref(null)
 const showColorPicker = ref(false)
 let chartInstance = null
+const status = ref(null)
+const letterContent = ref('')
+const history = ref([])
+const progressText = ref('')
+const diffText = ref('')
 
 const goBack = () => {
   router.push('/assessment')
@@ -268,6 +330,58 @@ const changeColorScheme = (schemeId) => {
   nextTick(() => {
     renderRadarChart()
   })
+}
+
+const openShare = () => {
+  if (report.value) {
+    showShareModal(report.value)
+  }
+}
+
+const buildLetter = (typeName) => {
+  const letters = {
+    '预演型社恐': `每次社交前，你都在心里排练无数遍对话。请记得：你不是准备不够，而是给自己的压力太大了。慢慢来，你已经很好。`,
+    '回避型社恐': `逃避不可耻，但迈出一小步会更自由。从一次短短的问候开始，你会看到变化。`,
+    '表演型社恐': `你以为所有人都在看你，其实大多数人都忙着关注自己。你的紧张，别人看不见。`,
+    '综合型社恐': `敏感细腻不是缺陷，它让你更懂他人。和自己和解，一点点地往前走。`,
+    '轻度社恐': `你已经很好了，只需要多一点点勇气。今天做一件让自己更自在的小事吧。`
+  }
+  return letters[typeName] || '你不需要变成“社交牛逼症”，只需更温柔地对待自己。慢慢来，会好的。'
+}
+
+const goRetest = () => {
+  router.push('/assessment')
+}
+
+const openShareActivation = () => {
+  const code = getActivationCode()
+  const link = generateActivationShareLink()
+  const modal = document.createElement('div')
+  modal.className = 'share-modal'
+  modal.innerHTML = `
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header"><h3>分享给好友</h3><button class="close-btn">×</button></div>
+      <div class="modal-body">
+        <div class="share-activation">
+          <div class="row"><span class="label">激活码</span><input class="copy-input" value="${code}" readonly /></div>
+          <div class="row"><span class="label">专属链接</span><input class="copy-input" value="${link}" readonly /></div>
+          <div class="tips text-secondary">说明：同一激活码每日最多3次，总有效期7天</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="copyCode">复制激活码</button>
+        <button class="btn-primary" id="copyLink">复制链接</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  const copy = (text) => navigator.clipboard?.writeText(text)
+  modal.querySelector('#copyCode').addEventListener('click', () => copy(code))
+  modal.querySelector('#copyLink').addEventListener('click', () => copy(link))
+  const close = () => modal.remove()
+  modal.querySelector('.close-btn').addEventListener('click', close)
+  modal.querySelector('.modal-overlay').addEventListener('click', close)
 }
 
 const renderRadarChart = () => {
@@ -360,7 +474,23 @@ onMounted(() => {
   if (savedReport) {
     try {
       report.value = JSON.parse(savedReport)
-      
+      status.value = getActivationStatus()
+      letterContent.value = buildLetter(report.value.type.name).replace(/\n/g, '<br>')
+      // 历史记录与常模对比
+      try {
+        const raw = localStorage.getItem('test_history')
+        history.value = raw ? JSON.parse(raw) : []
+        if (history.value.length >= 2) {
+          const a = history.value[0].totalScore
+          const b = history.value[1].totalScore
+          const diff = b - a
+          progressText.value = diff > 0 ? `较上次降低 ${diff} 分（进步）` : diff < 0 ? `较上次增加 ${-diff} 分` : '与上次持平'
+        }
+      } catch {}
+      const base = 72
+      const d = report.value.totalScore - base
+      diffText.value = d === 0 ? '持平' : (d > 0 ? `高出 ${d} 分` : `低于 ${-d} 分`)
+
       // 渲染雷达图
       nextTick(() => {
         renderRadarChart()
@@ -381,6 +511,7 @@ onMounted(() => {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background: var(--bg-main);
 }
 
 /* 顶部导航 */
@@ -444,12 +575,30 @@ onMounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 24px 0;
+  background: var(--bg-main);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .report-content {
   max-width: 600px;
   margin: 0 auto;
   padding-bottom: 40px;
+}
+
+/* 顶部角标：激活状态 */
+.status-badge {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  display: inline-block;
+  padding: 6px 12px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: var(--bg-section);
+  color: var(--text-title);
+  font-size: 12px;
+  border: 1px solid var(--border);
 }
 
 /* 总分卡片 */
@@ -874,6 +1023,25 @@ onMounted(() => {
   font-size: 12px;
 }
 
+/* 历史列表 */
+.small-note { font-size: 12px; margin-bottom: 12px; }
+.history-list { display: flex; flex-direction: column; gap: 8px; }
+.history-item { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; padding: 12px; background: var(--bg-section); border-radius: 8px; }
+.history-date, .history-score, .history-level, .history-type { font-size: 14px; }
+.history-summary { margin-top: 8px; }
+
+/* 常模对比 */
+.norm-box { display: flex; flex-direction: column; gap: 8px; }
+.norm-row { display: flex; justify-content: space-between; font-size: 14px; }
+.norm-row .label { color: var(--text-secondary); }
+.norm-row .value.up { color: var(--error); }
+.norm-row .value.down { color: var(--success); }
+.norm-note { margin-top: 8px; font-size: 12px; }
+
+/* 下一步行动 */
+.next-actions { display: flex; flex-direction: column; gap: 8px; }
+.next-btn { height: 44px; border-radius: 8px; font-weight: 600; }
+
 /* 配色选择弹窗 */
 .color-picker-modal {
   position: fixed;
@@ -913,6 +1081,7 @@ onMounted(() => {
   gap: 12px;
   margin-bottom: 20px;
 }
+.color-schemes.minimal { grid-template-columns: 1fr; gap: 8px; }
 
 .scheme-card {
   padding: 16px;
@@ -921,6 +1090,12 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
+}
+.scheme-card.minimal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
 }
 
 .scheme-card:hover {
@@ -942,11 +1117,23 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.scheme-preview {
-  width: 100%;
-  height: 40px;
-  border-radius: 4px;
+.scheme-chip {
+  position: relative;
+  width: 86px;
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-section);
+  border: 1px solid var(--border);
 }
+.scheme-chip .surface { position: absolute; inset: 0; border-radius: 8px; }
+.scheme-chip .primary { position: absolute; right: 0; top: 0; bottom: 0; width: 36%; }
+
+/* 预览 surface 与深浅方案匹配 */
+.surface.scheme1-light { background: #FFFFFF; }
+.surface.scheme1-dark { background: #2A2624; }
+.surface.scheme2-light { background: #FFFFFF; }
+.surface.scheme2-dark { background: #252A25; }
 
 .picker-actions {
   display: flex;

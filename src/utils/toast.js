@@ -13,9 +13,9 @@ export function showToast(message, duration = 2000, type = 'info') {
   
   toast.style.cssText = `
     position: fixed;
-    top: 20px;
+    top: 10%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, 0);
     padding: 14px 28px;
     border-radius: 8px;
     font-size: 14px;
@@ -23,19 +23,22 @@ export function showToast(message, duration = 2000, type = 'info') {
     z-index: 9999;
     background: ${colors[type] || colors.info};
     color: #ffffff;
-    animation: slideDown 0.3s ease;
+    animation: toastIn 0.25s ease;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
     border: 1px solid rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
+    will-change: transform, opacity;
+    pointer-events: none;
   `
   
   document.body.appendChild(toast)
   
   setTimeout(() => {
-    toast.style.animation = 'slideUp 0.3s ease'
+    // 使用与进入相对的动画，保持 transform 中的 -50% 水平位移
+    toast.style.animation = 'toastOut 0.25s ease forwards'
     setTimeout(() => {
       document.body.removeChild(toast)
-    }, 300)
+    }, 260)
   }, duration)
 }
 
