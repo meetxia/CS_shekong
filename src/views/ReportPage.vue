@@ -4,11 +4,22 @@
 
     <!-- 滚动内容区 -->
     <div class="content-scroll">
-      <div v-if="report" class="report-content container">
-        <!-- 顶部角标：激活码剩余信息 -->
-        <div v-if="status" class="status-badge">
-          <span>激活码剩余：{{ status.daysLeft }}天 · 今日：{{ status.remainingToday }}/{{ status.dailyLimit }}</span>
+      <!-- 开发者面板（仅开发环境显示，用于快速切换分数） -->
+      <div v-if="isDev && report" class="dev-panel">
+        <div class="dev-row">
+          <span class="dev-title">调试分数</span>
+          <input class="dev-input" type="number" min="0" max="100" v-model.number="devScore" @change="applyDevScore" />
         </div>
+        <input class="dev-range" type="range" min="0" max="100" v-model.number="devScore" @input="applyDevScore" />
+        <div class="dev-buttons">
+          <button class="dev-btn" @click="quickSet(25)">25</button>
+          <button class="dev-btn" @click="quickSet(45)">45</button>
+          <button class="dev-btn" @click="quickSet(65)">65</button>
+          <button class="dev-btn" @click="quickSet(85)">85</button>
+          <button class="dev-btn" @click="quickSet(95)">95</button>
+        </div>
+      </div>
+      <div v-if="report" class="report-content container" :data-level="getLevelCategory()">
         <!-- 1. 总分卡片 -->
         <div class="score-card gradient-card fade-in" :data-level="getLevelCategory()">
           <div class="score-decoration"></div>
@@ -20,7 +31,6 @@
             </div>
             <!-- 右侧：文字信息 -->
             <div class="score-right">
-              <h2 class="score-title">社恐程度评估结果</h2>
               <div class="level-name">{{ report.level.name }}</div>
               <div class="score-desc text-body">{{ report.level.desc }}</div>
             </div>
@@ -55,8 +65,41 @@
           <!-- 雷达图 -->
           <div ref="radarChart" class="radar-chart"></div>
           
-          <!-- 维度详解 -->
-          <div class="dimensions-detail">
+          <!-- 维度详解：默认收起，提供明显的展开提示 -->
+          <div class="collapse-toggle" @click="showDimensions = !showDimensions">
+            <span>{{ showDimensions ? '收起维度详解' : '点击查看维度详解' }}</span>
+            <span class="arrow" :class="{ open: showDimensions }">▼</span>
+          </div>
+
+          <!-- 半展开预览：折叠时显示前3个维度 -->
+          <div class="dimensions-preview" v-show="!showDimensions">
+            <div
+              v-for="(dim, index) in report.dimensions.slice(0, 3)"
+              :key="dim.key"
+              class="dimension-preview-item"
+              :data-dimension="index"
+            >
+              <div class="dimension-preview-header">
+                <span class="dimension-preview-name">{{ index + 1 }}. {{ dim.name }}</span>
+                <span class="dimension-preview-level" :class="'level-' + dim.level.level">
+                  {{ dim.level.level }}
+                </span>
+              </div>
+              <div class="dimension-preview-bar">
+                <div 
+                  class="dimension-preview-fill" 
+                  :style="{ width: `${dim.percentage}%` }"
+                  :data-dimension="index"
+                ></div>
+              </div>
+              <div class="dimension-preview-score">{{ dim.score }}/{{ dim.maxScore }}</div>
+            </div>
+            <div class="preview-hint text-secondary">
+              <span>点击上方展开查看全部 {{ report.dimensions.length }} 个维度详解</span>
+            </div>
+          </div>
+
+          <div class="dimensions-detail" v-show="showDimensions">
             <h4 class="detail-title text-title">维度详解</h4>
             <div
               v-for="(dim, index) in report.dimensions"
@@ -122,10 +165,36 @@
           </div>
         </div>
 
-        <!-- 5. 改善建议 -->
+        <!-- 5. 改善建议（默认收起） -->
         <div class="section-card card fade-in" style="animation-delay: 0.4s">
           <h3 class="section-title text-title">专属改善建议</h3>
-          
+
+          <div class="collapse-toggle" @click="showSuggestions = !showSuggestions">
+            <span>{{ showSuggestions ? '收起改善建议' : '点击查看专属改善建议' }}</span>
+            <span class="arrow" :class="{ open: showSuggestions }">▼</span>
+          </div>
+
+          <!-- 半展开预览：折叠时显示前2个建议标题 -->
+          <div class="suggestions-preview" v-show="!showSuggestions">
+            <div class="suggestions-preview-section">
+              <h4 class="subsection-title text-title">立即可行动</h4>
+              <div 
+                v-for="(suggestion, index) in report.suggestions.immediate.slice(0, 2)" 
+                :key="index" 
+                class="suggestion-preview-item"
+              >
+                <div class="suggestion-preview-title">{{ index + 1 }}. {{ suggestion.title }}</div>
+                <div class="suggestion-preview-hint text-secondary">
+                  {{ suggestion.steps ? `包含 ${suggestion.steps.length} 个具体方法` : '查看详细内容' }}
+                </div>
+              </div>
+            </div>
+            <div class="preview-hint text-secondary">
+              <span>点击上方展开查看全部改善建议（立即可行动、4周计划、长期改善）</span>
+            </div>
+          </div>
+
+          <div v-show="showSuggestions">
           <!-- 立即可行动 -->
           <div class="suggestions-section">
             <h4 class="subsection-title text-title">立即可行动</h4>
@@ -197,6 +266,7 @@
               <strong>建议：</strong>{{ report.suggestions.warning.advice }}
             </p>
           </div>
+          </div>
         </div>
 
         <!-- 6. 报告说明 -->
@@ -246,21 +316,29 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import dayjs from 'dayjs'
 import { showShareModal } from '@/utils/shareCard'
-import { getActivationStatus, getActivationCode, generateActivationShareLink } from '@/utils/activation'
+import { getActivationCode, generateActivationShareLink } from '@/utils/activation'
+import { getLevel } from '@/utils/scoring'
 
 const router = useRouter()
 const report = ref(null)
+// 折叠切换：维度详解 & 改善建议 默认收起
+const showDimensions = ref(false)
+const showSuggestions = ref(false)
 const radarChart = ref(null)
 let chartInstance = null
-const status = ref(null)
+const resizeHandler = () => {
+  chartInstance?.resize()
+}
 const letterContent = ref('')
 const history = ref([])
 const progressText = ref('')
+const isDev = ref(import.meta.env.DEV)
+const devScore = ref(0)
 
 // 全局导航已提供返回与首页入口
 
@@ -273,21 +351,21 @@ const formatContent = (content) => {
   return content.replace(/\n/g, '<br>')
 }
 
-// 根据分数获取等级分类（用于配色）
+// 根据分数获取等级分类（用于配色，V4→V1）
 const getLevelCategory = () => {
-  // 直接根据评分名称映射，避免阈值不一致
   switch (report.value?.level?.name) {
     case '社交自如型':
-      return 'low'
+      return 'normal' // 低于轻度
     case '轻度社交焦虑':
-      return 'medium'
+      return 'mild'   // V4（蓝）
     case '中度社交焦虑':
-      return 'high'
+      return 'moderate' // V3（金）
     case '重度社交焦虑':
+      return 'severe'   // V2（银灰）
     case '极重度社交焦虑':
-      return 'severe'
+      return 'verysevere' // V1（红粉）
     default:
-      return 'medium'
+      return 'moderate'
   }
 }
 
@@ -297,6 +375,21 @@ const openShare = () => {
   if (report.value) {
     showShareModal(report.value)
   }
+}
+
+// 开发者：应用调试分数（仅前端预览，不持久化）
+const applyDevScore = () => {
+  if (!report.value) return
+  const s = Math.max(0, Math.min(100, Number(devScore.value || 0)))
+  report.value.totalScore = s
+  try {
+    report.value.level = getLevel(s, report.value.basicInfo || {})
+  } catch {}
+}
+
+const quickSet = (s) => {
+  devScore.value = s
+  applyDevScore()
 }
 
 // 基础信息映射到展示文案
@@ -363,16 +456,19 @@ const renderRadarChart = () => {
   // 获取当前主题颜色
   const computedStyle = getComputedStyle(document.documentElement)
   const primaryColor = computedStyle.getPropertyValue('--primary').trim()
-  const textColor = computedStyle.getPropertyValue('--text-title').trim()
+  const textTitle = computedStyle.getPropertyValue('--text-title').trim()
+  const textSecondary = computedStyle.getPropertyValue('--text-secondary').trim()
+  const borderColorVar = computedStyle.getPropertyValue('--border').trim()
   const isDark = document.body.className.includes('-dark')
   
   // 优化配色 - 更明亮生动
-  const gridColor = isDark ? 'rgba(212,181,172,0.35)' : 'rgba(212,165,116,0.25)'
+  // 网格线与标签颜色使用主题变量，增强浅色模式对比度
+  const gridColor = borderColorVar || (isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.15)')
   const radarLineColor = isDark ? 'rgba(255,180,150,0.9)' : 'rgba(255,77,79,0.85)'
   const radarAreaColor = isDark 
     ? 'rgba(255,180,150,0.25)' 
     : 'rgba(255,160,122,0.25)'
-  const labelColor = isDark ? '#F5E6D3' : '#2A2A2A'
+  const labelColor = textTitle || (isDark ? '#F5E6D3' : '#1A1A1A')
   
   // 准备雷达图数据
   const indicatorData = report.value.dimensions.map(dim => ({
@@ -392,7 +488,12 @@ const renderRadarChart = () => {
         textStyle: {
           color: labelColor,
           fontSize: 13,
-          fontWeight: 400
+          fontWeight: 500,
+          // 提升在浅色背景下的可读性
+          textShadowColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.6)',
+          textShadowBlur: 2,
+          textShadowOffsetX: 0,
+          textShadowOffsetY: 1
         }
       },
       splitLine: {
@@ -415,6 +516,19 @@ const renderRadarChart = () => {
           color: gridColor,
           width: 1
         }
+      }
+    },
+    tooltip: {
+      show: true,
+      confine: true,
+      backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.95)',
+      borderColor: gridColor,
+      textStyle: { color: labelColor, fontSize: 12 },
+      formatter: (params) => {
+        const values = params.value
+        return report.value.dimensions
+          .map((d, i) => `${d.name}：${values[i]}/${d.maxScore}`)
+          .join('<br/>')
       }
     },
     series: [{
@@ -456,19 +570,34 @@ const renderRadarChart = () => {
   chartInstance.resize()
   
   // 响应式调整
-  window.addEventListener('resize', () => {
-    chartInstance?.resize()
-  })
+  window.addEventListener('resize', resizeHandler)
 }
 
 onMounted(async () => {
+  // 默认启用深色模式（若当前不是深色则切换）
+  try {
+    const cls = document.body.className
+    if (!/\-dark/.test(cls)) {
+      if (cls.includes('scheme1-light')) {
+        document.body.className = cls.replace('scheme1-light', 'scheme1-dark')
+      } else if (cls.includes('scheme2-light')) {
+        document.body.className = cls.replace('scheme2-light', 'scheme2-dark')
+      } else if (!/scheme\d\-(dark|light)/.test(cls)) {
+        document.body.classList.add('scheme1-dark')
+      } else {
+        document.body.classList.add('scheme1-dark')
+      }
+      localStorage.setItem('preferred_theme', 'dark')
+    }
+  } catch {}
+
   // 加载报告数据
   const savedReport = localStorage.getItem('test_report')
   if (savedReport) {
     try {
       report.value = JSON.parse(savedReport)
-      status.value = await getActivationStatus()
       letterContent.value = buildLetter(report.value.type.name).replace(/\n/g, '<br>')
+      devScore.value = report.value.totalScore || 0
       // 历史记录与常模对比
       try {
         const raw = localStorage.getItem('test_history')
@@ -493,6 +622,26 @@ onMounted(async () => {
     router.push('/assessment')
   }
 })
+
+// 监听主题切换（通过 body class 变化），自动重绘雷达图
+let themeObserver = null
+onMounted(() => {
+  themeObserver = new MutationObserver(() => {
+    nextTick(() => {
+      renderRadarChart()
+    })
+  })
+  themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', resizeHandler)
+  themeObserver?.disconnect()
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
+  }
+})
 </script>
 
 <style scoped>
@@ -514,6 +663,8 @@ onMounted(async () => {
 .content-scroll {
   flex: 1;
   overflow-y: auto;
+  /* 为滚动条预留空间，避免布局偏移 */
+  scrollbar-gutter: stable;
   /* 让内容起始不被全局导航遮挡 - 增加顶部间距避免导航遮挡 */
   padding: 72px 0 24px 0;
   background: var(--bg-main);
@@ -534,22 +685,28 @@ onMounted(async () => {
   perspective: 1000px;
 }
 
-/* 顶部角标：激活状态 - 固定在页面顶部 */
-.status-badge {
+/* 开发者面板样式（固定右上角） */
+.dev-panel {
   position: fixed;
-  top: -35px;
-  left: 16px;
-  z-index: 100;
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--bg-section);
-  color: var(--text-title);
-  font-size: 11px;
-  border: 1px solid var(--border);
+  top: 76px;
+  right: 16px;
+  z-index: 1200;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
   backdrop-filter: blur(10px);
-  max-width: 200px;
+  color: #fff;
+  min-width: 200px;
 }
+
+.dev-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.dev-title { font-size: 12px; opacity: 0.9; }
+.dev-input { width: 72px; height: 28px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff; padding: 0 6px; }
+.dev-range { width: 100%; margin: 4px 0 8px; }
+.dev-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.dev-btn { height: 28px; padding: 0 8px; border-radius: 6px; border: none; cursor: pointer; background: linear-gradient(135deg, #4facfe, #00f2fe); color: #1a1a1a; font-weight: 700; }
+.dev-btn:hover { filter: brightness(1.05); }
 
 /* 总分卡片 - 根据等级动态配色 */
 .score-card {
@@ -558,7 +715,7 @@ onMounted(async () => {
   margin-top: 40px;
   margin-bottom: 20px;
   border-radius: 16px;
-  color: #fff;
+  color: #fff; /* 统一让内部文字继承白色，确保和深色背景对比强烈 */
   overflow: hidden;
   transition: all 0.3s ease;
   display: flex;
@@ -608,24 +765,29 @@ onMounted(async () => {
   pointer-events: none;
 }
 
-/* 轻度社恐 - 更淡的宁静绿 */
-.score-card[data-level="low"] {
-  background: linear-gradient(135deg, #A8BDA5 0%, #C9D9C4 50%, #A8BDA5 100%);
+/* V4 轻度（mild）- 冰蓝背景 */
+.score-card[data-level="mild"] {
+  background: linear-gradient(135deg, #DDEBFF 0%, #C7D2FE 55%, #A5B4FC 130%);
 }
 
-/* 中度社恐 - 更淡的温暖橙 */
-.score-card[data-level="medium"] {
-  background: linear-gradient(135deg, #E0BF9A 0%, #F0D9C0 50%, #E0BF9A 100%);
+/* V3 中度（moderate）- 金色背景 */
+.score-card[data-level="moderate"] {
+  background: linear-gradient(135deg, #F6E3B5 0%, #E7C36A 55%, #F5D58A 130%);
 }
 
-/* 重度社恐 - 更淡的柔和红 */
-.score-card[data-level="high"] {
-  background: linear-gradient(135deg, #D9A39B 0%, #ECC5BE 50%, #D9A39B 100%);
-}
-
-/* 极重度社恐 - 更淡的深沉紫红 */
+/* V2 重度（severe）- 银灰背景 */
 .score-card[data-level="severe"] {
-  background: linear-gradient(135deg, #B88FA0 0%, #D9B0BC 50%, #B88FA0 100%);
+  background: linear-gradient(135deg, #d6d6d6 0%, #7ba0eb 50%, rgb(74, 84, 100) 120%);
+}
+
+/* V1 极重度（verysevere）- 红粉背景 */
+.score-card[data-level="verysevere"] {
+  background: linear-gradient(135deg, #FFC6C9 0%, #FF8AAE 55%, #FF6B8B 135%);
+}
+
+/* V5 自如（normal）- 冰白淡紫背景 */
+.score-card[data-level="normal"] {
+  background: linear-gradient(135deg, #F6F7FB 0%, #ECEBFF 55%, #DFE2FF 120%);
 }
 
 /* 左侧：超大分数 */
@@ -634,14 +796,40 @@ onMounted(async () => {
   font-weight: 900;
   letter-spacing: -4px;
   line-height: 1;
-  background: linear-gradient(180deg, #FF4D4F 0%, #FF7875 50%, #FFA940 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  /* 基础不设固定渐变，由各等级规则覆盖设定 */
+  background: none;
+  -webkit-background-clip: text !important;
   background-clip: text;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  display: inline-block;
   position: relative;
-  filter: drop-shadow(0 4px 12px rgba(255, 77, 79, 0.2));
+  /* 改用 text-shadow，避免 filter 破坏文字裁剪导致整块背景出现 */
+  text-shadow: 0 2px 8px rgba(0,0,0,0.10);
   transform: scale(1);
   transition: transform 0.3s ease;
+}
+
+/* 分数数字颜色：跟随等级的对比渐变（V4→V1） */
+.score-card[data-level="mild"] .total-score {
+  background: linear-gradient(180deg, #2444E6 0%, #4E86FF 55%, #59C4FF 100%);
+}
+
+.score-card[data-level="moderate"] .total-score {
+  background: linear-gradient(218deg, #ffbb62 0%, #995f00 55%, #000000 100%);
+}
+
+.score-card[data-level="severe"] .total-score {
+  background: linear-gradient(180deg, #98abd3 0%, #131f38 55%, #27344e 100%);
+}
+
+.score-card[data-level="verysevere"] .total-score {
+  background: linear-gradient(180deg, #2c2929 0%, #5e3439 55%, #FFE08A 100%);
+}
+
+/* V5 自如（normal）分数渐变：高对比靛蓝→亮紫 */
+.score-card[data-level="normal"] .total-score {
+  background: linear-gradient(180deg, #2D2DE8 0%, #6C63FF 55%, #A78BFA 100%);
 }
 
 .total-score:hover {
@@ -652,8 +840,8 @@ onMounted(async () => {
 .score-unit {
   font-size: 28px;
   font-weight: 700;
-  color: #1A1A1A;
-  opacity: 0.8;
+  color: #3d3d3d; /* 与卡片前景一致，统一高对比 */
+  opacity: 0.9;
   align-self: flex-end;
   margin-bottom: 8px;
 }
@@ -662,17 +850,17 @@ onMounted(async () => {
 .score-title {
   font-size: 12px;
   font-weight: 500;
-  color: #1A1A1A;
-  opacity: 0.7;
+  color: rgba(82, 81, 81, 0.85);
+  opacity: 0.95;
   letter-spacing: 0.5px;
   margin: 0;
 }
 
 /* 右侧：等级名 */
 .level-name {
-  font-size: 40px;
+  font-size: 30px;
   font-weight: 800;
-  color: #1A1A1A;
+  color: #3b3b3b;
   letter-spacing: 3px;
   margin: 4px 0;
   line-height: 1.2;
@@ -681,10 +869,10 @@ onMounted(async () => {
 /* 右侧：等级描述文字 */
 .score-desc {
   font-size: 13px;
-  opacity: 0.85;
+  opacity: 0.92;
   font-weight: 400;
   letter-spacing: 0.3px;
-  color: #1A1A1A;
+  color: rgba(41, 41, 41, 0.9);
   margin-top: 8px;
   line-height: 1.5;
 }
@@ -745,6 +933,13 @@ onMounted(async () => {
   transform: translateX(-50%);
 }
 
+/* 指示颜色跟随当前等级（与分数卡片一致） */
+.report-content[data-level="mild"] .your-position { color: #3B5FB5; }
+.report-content[data-level="normal"] .your-position { color: #6C63FF; }
+.report-content[data-level="moderate"] .your-position { color: #C08A1F; }
+.report-content[data-level="severe"] .your-position { color: #6B7280; }
+.report-content[data-level="verysevere"] .your-position { color: #D94B6B; }
+
 .position-label {
   display: block;
   font-size: 12px;
@@ -768,6 +963,7 @@ onMounted(async () => {
   color: #fff;
   font-weight: 700;
   transition: all 0.3s ease;
+  white-space: nowrap; /* 防止移动端换行（如“极重度”） */
 }
 
 .level-segment:hover {
@@ -775,23 +971,23 @@ onMounted(async () => {
 }
 
 .level-seg-low {
-  width: 50%; /* 0-50分：包含社交自如型(0-30)和轻度(31-50) */
-  background: linear-gradient(135deg, #91A88E 0%, #B8C9A8 100%);
+  width: 50%; /* 0-50分：包含社交自如与轻度 */
+  background: linear-gradient(135deg, #C7D2FE 0%, #A5B4FC 100%); /* 冰蓝（V4 风格） */
 }
 
 .level-seg-medium {
-  width: 20%; /* 51-70分：中度 */
-  background: linear-gradient(135deg, #D4A574 0%, #E8C4A0 100%);
+  width: 20%; /* 51-70分：中度（V3 金色） */
+  background: linear-gradient(135deg, #E7C36A 0%, #F5D58A 100%);
 }
 
 .level-seg-high {
-  width: 20%; /* 71-90分：重度 */
-  background: linear-gradient(135deg, #C8837B 0%, #DDA89E 100%);
+  width: 20%; /* 71-90分：重度（V2 银灰） */
+  background: linear-gradient(135deg, #415f9c 0%, #697fa5 100%);
 }
 
 .level-seg-severe {
-  width: 10%; /* 91-100分：极重度 */
-  background: linear-gradient(135deg, #A17185 0%, #C9949F 100%);
+  width: 10%; /* 91-100分：极重度（V1 粉红） */
+  background: linear-gradient(135deg, #FF8AAE 0%, #FF6B8B 100%);
 }
 
 /* 维度分析卡片 - 添加柔和渐变背景 */
@@ -817,6 +1013,179 @@ onMounted(async () => {
 /* 维度详解 */
 .dimensions-detail {
   margin-top: 24px;
+}
+
+/* 折叠切换条 */
+.collapse-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-title);
+  user-select: none;
+}
+
+.collapse-toggle:hover { background: var(--bg-section); }
+.collapse-toggle .arrow { transition: transform 0.2s ease; }
+.collapse-toggle .arrow.open { transform: rotate(180deg); }
+
+/* 维度详解预览样式 */
+.dimensions-preview {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(
+    to bottom right,
+    var(--bg-section) 0%,
+    var(--bg-card) 100%
+  );
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  opacity: 0.85;
+}
+
+.dimension-preview-item {
+  margin-bottom: 14px;
+  padding: 12px;
+  background: var(--bg-card);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.dimension-preview-item:last-of-type {
+  margin-bottom: 0;
+}
+
+.dimension-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.dimension-preview-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-title);
+  flex: 1;
+}
+
+.dimension-preview-level {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+/* 预览等级标签复用完整版的配色 */
+.dimension-preview-level.level-较低 {
+  background: linear-gradient(135deg, #B8C9A8 0%, #91A88E 100%);
+  color: #fff;
+}
+
+.dimension-preview-level.level-中等 {
+  background: linear-gradient(135deg, #E8C4A0 0%, #D4A574 100%);
+  color: #fff;
+}
+
+.dimension-preview-level.level-中高 {
+  background: linear-gradient(135deg, #E8A87D 0%, #D48555 100%);
+  color: #fff;
+}
+
+.dimension-preview-level.level-偏高 {
+  background: linear-gradient(135deg, #E89B9B 0%, #D67575 100%);
+  color: #fff;
+}
+
+.dimension-preview-bar {
+  height: 6px;
+  background: var(--bg-section);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.dimension-preview-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* 预览填充条使用与完整版相同的配色 */
+.dimension-preview-fill[data-dimension="0"] {
+  background: linear-gradient(90deg, #E89B9B 0%, #D67575 100%);
+}
+
+.dimension-preview-fill[data-dimension="1"] {
+  background: linear-gradient(90deg, #E8C4A0 0%, #D4A574 100%);
+}
+
+.dimension-preview-fill[data-dimension="2"] {
+  background: linear-gradient(90deg, #D9C89E 0%, #C4B584 100%);
+}
+
+.dimension-preview-score {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.preview-hint {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* 改善建议预览样式 */
+.suggestions-preview {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(
+    to bottom right,
+    var(--bg-section) 0%,
+    var(--bg-card) 100%
+  );
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  opacity: 0.85;
+}
+
+.suggestions-preview-section {
+  margin-bottom: 12px;
+}
+
+.suggestion-preview-item {
+  padding: 12px;
+  background: var(--bg-card);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+}
+
+.suggestion-preview-item:last-child {
+  margin-bottom: 0;
+}
+
+.suggestion-preview-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-title);
+  margin-bottom: 6px;
+}
+
+.suggestion-preview-hint {
+  font-size: 12px;
+  opacity: 0.8;
 }
 
 .detail-title {
@@ -1355,7 +1724,7 @@ onMounted(async () => {
   }
   
   .level-name {
-    font-size: 32px;
+    font-size: 25px;
   }
 }
 
@@ -1385,7 +1754,7 @@ onMounted(async () => {
   }
   
   .level-name {
-    font-size: 28px;
+    font-size: 22px;
     letter-spacing: 2px;
   }
   
@@ -1427,7 +1796,7 @@ onMounted(async () => {
   }
   
   .level-name {
-    font-size: 24px;
+    font-size: 22px;
     letter-spacing: 1.5px;
     margin: 2px 0;
   }
@@ -1436,12 +1805,53 @@ onMounted(async () => {
     font-size: 11px;
   }
   
-  .section-card {
-    padding: 20px 16px;
-  }
+  .section-card { padding: 16px 12px; }
+  .collapse-toggle { padding: 10px 12px; border-radius: 8px; font-size: 14px; }
   
   .radar-chart {
     height: 250px;
+  }
+
+  /* 预览样式移动端优化 */
+  .dimensions-preview,
+  .suggestions-preview {
+    padding: 12px;
+    margin-top: 12px;
+  }
+
+  .dimension-preview-item {
+    padding: 10px;
+  }
+
+  .dimension-preview-name {
+    font-size: 13px;
+  }
+
+  .dimension-preview-level {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  .dimension-preview-score {
+    font-size: 10px;
+  }
+
+  .suggestion-preview-item {
+    padding: 10px;
+  }
+
+  .suggestion-preview-title {
+    font-size: 14px;
+  }
+
+  .suggestion-preview-hint {
+    font-size: 11px;
+  }
+
+  .preview-hint {
+    font-size: 11px;
+    margin-top: 10px;
+    padding-top: 10px;
   }
 }
 
@@ -1474,7 +1884,7 @@ onMounted(async () => {
   }
   
   .level-name {
-    font-size: 20px;
+    font-size: 18px;
     letter-spacing: 1px;
   }
   
@@ -1486,25 +1896,8 @@ onMounted(async () => {
 /* ========== 深色模式适配 ========== */
 
 /* 深色模式下，总分卡片需要更深的色调 */
-.scheme1-dark .score-card[data-level="low"],
-.scheme2-dark .score-card[data-level="low"] {
-  background: linear-gradient(135deg, #6B7D68 0%, #8A9A84 50%, #6B7D68 100%);
-}
-
-.scheme1-dark .score-card[data-level="medium"],
-.scheme2-dark .score-card[data-level="medium"] {
-  background: linear-gradient(135deg, #9C7D58 0%, #B8966F 50%, #9C7D58 100%);
-}
-
-.scheme1-dark .score-card[data-level="high"],
-.scheme2-dark .score-card[data-level="high"] {
-  background: linear-gradient(135deg, #96635C 0%, #A97C75 50%, #96635C 100%);
-}
-
-.scheme1-dark .score-card[data-level="severe"],
-.scheme2-dark .score-card[data-level="severe"] {
-  background: linear-gradient(135deg, #7A5566 0%, #936A7C 50%, #7A5566 100%);
-}
+/* 深色模式：各等级更深色系 */
+/* 深色模式下保持与浅色一致：不对分数卡片背景做覆盖 */
 
 /* 深色模式下装饰元素更柔和 */
 .scheme1-dark .score-decoration,
@@ -1512,26 +1905,7 @@ onMounted(async () => {
   background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
 }
 
-/* 深色模式下等级条颜色调暗 */
-.scheme1-dark .level-seg-low,
-.scheme2-dark .level-seg-low {
-  background: linear-gradient(135deg, #6B7D68 0%, #8A9A84 100%);
-}
-
-.scheme1-dark .level-seg-medium,
-.scheme2-dark .level-seg-medium {
-  background: linear-gradient(135deg, #9C7D58 0%, #B8966F 100%);
-}
-
-.scheme1-dark .level-seg-high,
-.scheme2-dark .level-seg-high {
-  background: linear-gradient(135deg, #96635C 0%, #A97C75 100%);
-}
-
-.scheme1-dark .level-seg-severe,
-.scheme2-dark .level-seg-severe {
-  background: linear-gradient(135deg, #7A5566 0%, #936A7C 100%);
-}
+/* 深色模式下不覆盖等级条颜色，保持与浅色一致 */
 
 /* 深色模式下六维度颜色调暗 */
 .scheme1-dark .dimension-fill[data-dimension="0"],
@@ -1566,11 +1940,9 @@ onMounted(async () => {
 
 /* ========== 浅色模式适配 ========== */
 
-/* 浅色模式下，总分卡片字体采用深色以增强对比度 */
-.scheme1-light .report-page .score-card,
-.scheme2-light .report-page .score-card {
-  color: #1A1A1A;
-}
+/* 浅色模式下仍保持白色前景，确保对比强烈（背景更深） */
+/* 取消浅色模式对文字颜色的强制覆盖，让两种模式保持一致 */
+/* （保留装饰元素的差异化，不影响卡片与分数颜色） */
 
 /* 浅色模式下装饰元素更明亮 */
 .scheme1-light .score-decoration,
@@ -1604,24 +1976,12 @@ onMounted(async () => {
 }
 
 /* 深色模式 - 强化分数视觉冲击力 */
-.scheme1-dark .report-page .total-score,
-.scheme2-dark .report-page .total-score {
-  color: #FFFFFF;
-  -webkit-text-stroke: 1.5px rgba(0,0,0,0.4);
-  filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));
-}
+/* 取消深色模式对分数字体的特殊处理（与浅色一致） */
 
-/* 浅色模式 - 强化分数视觉冲击力 */
-.scheme1-light .report-page .total-score,
-.scheme2-light .report-page .total-score {
-  color: #000000;
-  -webkit-text-stroke: 0.5px rgba(0,0,0,0.1);
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-}
+/* 浅色模式 - 分数依旧用暖红橙渐变以吸睛 */
+/* 取消浅色模式对分数字体的特殊处理（与深色一致） */
 
 .scheme1-light .report-page .level-name,
-.scheme2-light .report-page .level-name {
-  color: #000000;
-}
+.scheme2-light .report-page .level-name { color: #000000; }
 </style>
 

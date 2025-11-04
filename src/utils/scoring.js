@@ -144,7 +144,7 @@ export function getLevel(score, basicInfo = {}) {
     return { 
       name: '中度社交焦虑', 
       color: '#f59e0b', 
-      desc: '社交焦虑已明显影响日常生活，建议系统性练习改善。' 
+      desc: '社交焦虑已明显影响日常生活' 
     }
   }
   
@@ -152,14 +152,14 @@ export function getLevel(score, basicInfo = {}) {
     return { 
       name: '重度社交焦虑', 
       color: '#ef4444', 
-      desc: '社交焦虑严重影响生活质量，建议寻求专业帮助。' 
+      desc: '社交焦虑严重影响生活质量' 
     }
   }
   
   return { 
     name: '极重度社交焦虑', 
     color: '#991b1b', 
-    desc: '正在经历严重社交困扰，强烈建议尽快咨询专业心理医生。' 
+    desc: '建议尽快咨询专业心理医生' 
   }
 }
 
@@ -496,6 +496,125 @@ function getSuggestions(type, scores, basicInfo) {
       advice: '建议咨询专业心理咨询师或精神科医生。全国心理援助热线：12355'
     }
   }
+
+  // ===== 基于用户信息生成稳定随机种子，保证多样但同一用户一致 =====
+  const seedBase = JSON.stringify({
+    age: basicInfo.age || 'na',
+    gender: basicInfo.gender || 'na',
+    occupation: basicInfo.occupation || 'na',
+    social_frequency: basicInfo.social_frequency || 'na',
+    type: type?.id || 'general'
+  })
+  const rng = buildSeededRng(hashString(seedBase))
+
+  // ===== 计算严重度带，决定任务剂量与强度 =====
+  const total100 = Math.round((scores.total / 165) * 100)
+  const severity = total100 <= 30 ? 'normal' : total100 <= 50 ? 'mild' : total100 <= 70 ? 'moderate' : total100 <= 90 ? 'severe' : 'very_severe'
+
+  // ===== 识别高风险维度与保护性因子 =====
+  const dim = scores.dimensions || {}
+  const highDims = Object.entries(dim)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([k]) => k)
+  const protective = []
+  if ((dim.self_efficacy || 0) >= 14) protective.push('self_efficacy')
+  if ((dim.scene_fear || 0) <= 10) protective.push('low_scene_fear')
+
+  // ===== 立即建议池（按维度/类型组装，再去重抽样） =====
+  const pool = []
+
+  const pushItem = (item) => {
+    if (!pool.find(i => i.title === item.title)) pool.push(item)
+  }
+
+  // 通用CBT/行为策略模板
+  const genericTemplates = [
+    {
+      title: 'SMART目标：本周最小可行社交',
+      content: '具体(S)：向1位同事/同学主动发起2分钟对话；可衡量(M)：1次；可达成(A)：提前准备话题；相关(R)：与社交自信提升相关；有时限(T)：72小时内完成。',
+      metric: '完成次数≥1；主观焦虑(SUDs)从预期到实际下降≥2分'
+    },
+    {
+      title: '情绪-想法-行为记录（TFB）',
+      content: '一次社交后，记录情境、自动化想法、情绪强度(0-10)、证据支持/反驳、替代性想法、后续行为。每次≤5分钟。',
+      metric: '每周≥3条记录'
+    },
+    {
+      title: '安全行为检查表',
+      content: '识别并减少安全行为：避免眼神、反复润色消息、强迫准备等。每次社交前勾选1项减少。',
+      metric: '每周至少减少1个安全行为，保持2次'
+    }
+  ]
+
+  // 维度定制模板
+  const byDimension = {
+    anticipation: [
+      { title: '担忧时限法', content: '为“预期焦虑”设定5分钟担忧窗口，到点停止并行动。配合5-4-3-2-1地面化。', metric: '预期SUDs较上周下降≥2' }
+    ],
+    rumination: [
+      { title: '后反刍计时器', content: '社交后设置10分钟“允许反思”计时，结束后写下3件完成的还不错的细节，终止继续反刍。', metric: '反刍时长≤10分钟/次' }
+    ],
+    avoidance: [
+      { title: '渐进式暴露清单', content: '构建10级难度阶梯，从1分小任务开始（见下方暴露阶梯）。每个等级完成3-5次后升级。', metric: '本周完成≥2个1-3级任务' }
+    ],
+    scene_fear: [
+      { title: '场景脱敏演练', content: '使用意象暴露：闭眼回想具体社交场景，逐步延长至3-5分钟，并配合缓慢呼吸。', metric: '意象暴露完成≥3次/周' }
+    ],
+    physical: [
+      { title: '呼吸-肌肉放松组合', content: '4-4-6呼吸×3组 + 渐进式肌肉放松（手臂/肩颈/下颌）。', metric: '紧张场合使用≥2次' }
+    ],
+    fear_of_negative_evaluation: [
+      { title: '聚光灯效应纠偏', content: '收集“他人注意我”与“实际被注意”的证据对照，每次至少写3条反例。', metric: '每周≥2次证据日志' }
+    ],
+    functional_impairment: [
+      { title: '功能优先级修复', content: '列出受影响的3个功能领域（学业/工作/关系），各选择1个最低成本的修复行动。', metric: '本周完成≥2项' }
+    ],
+    self_efficacy: [
+      { title: '微胜利清单', content: '每天记录1个完成的微社交行动和积极反馈，积累10条以上。', metric: '7天≥5条微胜利' }
+    ]
+  }
+
+  genericTemplates.forEach(t => pushItem(t))
+  highDims.forEach(k => (byDimension[k] || []).forEach(t => pushItem(t)))
+
+  // 按严重度扩展强度/资源
+  if (severity === 'severe' || severity === 'very_severe') {
+    pushItem({
+      title: '优先联系专业支持',
+      content: '建议每周1次心理咨询（CBT/暴露疗法），或至正规医院精神心理科评估。可先进行电话或视频咨询以降低进入成本。',
+      metric: '预约完成+首次会谈完成'
+    })
+  }
+
+  // 从池中按种子随机选择4-6条
+  const pickCount = severity === 'mild' ? 4 : severity === 'moderate' ? 5 : 6
+  const immediate = sampleDistinct(pool, pickCount, rng)
+
+  // ===== 暴露阶梯（根据最高的两个维度定制） =====
+  const topTwo = highDims.slice(0, 2)
+  const ladder = buildExposureLadder(topTwo, rng)
+
+  // ===== 每周计划（剂量随严重度调整） =====
+  const weekly = buildWeeklyPlan(basicInfo, severity)
+
+  // ===== 长期路径（阶段化：认知→暴露→技能→关系→维护） =====
+  const longTermPath = buildLongTermPath(severity, type, highDims)
+
+  // ===== 指标与追踪（量化改善） =====
+  const metrics = buildMetrics(severity, highDims)
+
+  // ===== 优势与触发因素画像 =====
+  const strengths = buildStrengths(protective, basicInfo)
+  const triggers = buildTriggers(highDims)
+
+  suggestions.immediate = immediate
+  suggestions.weekly = weekly
+  suggestions.exposureLadder = ladder
+  suggestions.longTermPath = longTermPath
+  suggestions.metrics = metrics
+  suggestions.strengths = strengths
+  suggestions.triggers = triggers
   
   // 根据类型提供针对性建议
   if (type.id === 'fear_evaluation') {
@@ -700,6 +819,189 @@ function getSuggestions(type, scores, basicInfo) {
   }
   
   return suggestions
+}
+
+// ========== 工具与构建器 ==========
+function hashString(str) {
+  let h = 2166136261 >>> 0
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
+function buildSeededRng(seed) {
+  let s = seed >>> 0
+  return function next() {
+    // xorshift32
+    s ^= s << 13
+    s ^= s >>> 17
+    s ^= s << 5
+    return ((s >>> 0) % 1e9) / 1e9
+  }
+}
+
+function sampleDistinct(arr, count, rng) {
+  const indices = Array.from({ length: arr.length }, (_, i) => i)
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    const t = indices[i]
+    indices[i] = indices[j]
+    indices[j] = t
+  }
+  return indices.slice(0, Math.max(0, Math.min(count, arr.length))).map(i => arr[i])
+}
+
+function buildExposureLadder(topDims, rng) {
+  const templates = {
+    anticipation: [
+      '在电梯里与1人微笑点头',
+      '问前台一个简单问题',
+      '给朋友发30秒语音',
+      '在会议中说1句支持性评论',
+      '主动组织1次3人线上小聊'
+    ],
+    avoidance: [
+      '给外卖员说“辛苦了”',
+      '便利店询问货架位置',
+      '与同事寒暄3分钟',
+      '参加小组例会并发言',
+      '参加线下小聚并停留30分钟'
+    ],
+    scene_fear: [
+      '在超市排队时与前后各说1句话',
+      '主动与同学/同事打招呼',
+      '在小组内做1分钟汇报',
+      '向陌生人问路',
+      '参与5人小组讨论并发言2次'
+    ],
+    fear_of_negative_evaluation: [
+      '在群里发送1条非完美但真实的消息',
+      '提出1个小问题（允许不完美）',
+      '分享一次“小失败”的经验',
+      '自我暴露：说出1个小缺点',
+      '做一个不完美的演示（刻意保留小瑕疵）'
+    ],
+    rumination: [
+      '社交后立即写下3条正向证据',
+      '设置10分钟反刍计时并准时停止',
+      '与朋友复盘而非自我责备',
+      '进行5分钟正念呼吸',
+      '写下“最糟也可承受”的备选方案'
+    ],
+    physical: [
+      '社交前做3轮4-4-6呼吸',
+      '紧张时进行手掌放松训练',
+      '保持稳定的眼神接触2秒',
+      '喝温水并放慢说话速度',
+      '会前站立式伸展1分钟'
+    ],
+    functional_impairment: [
+      '列一项与工作/学业直接相关的小社交任务',
+      '用计时法完成1个必要沟通（≤5分钟）',
+      '每天下班后记录1个完成的社交行动',
+      '约1位同事/同学10分钟交流',
+      '与导师/上级约一次反馈沟通'
+    ]
+  }
+  const source = (templates[topDims[0]] || []).concat(templates[topDims[1]] || [])
+  const picked = sampleDistinct(source, 6, rng)
+  return picked.map((task, index) => ({ level: index + 1, task }))
+}
+
+function buildWeeklyPlan(basicInfo, severity) {
+  const isStudent = basicInfo.occupation === 'student'
+  const base = {
+    week1: {
+      title: isStudent ? '第1周：线上语音练习' : '第1周：低压力社交',
+      tasks: isStudent ? [
+        '微信语音聊天（vs文字）',
+        '每天至少1次，3分钟以上',
+        '可以先找最熟的朋友'
+      ] : [
+        '和同事闲聊5分钟',
+        '主动问候至少3个人',
+        '参加1次线上会议并发言1次'
+      ]
+    },
+    week2: {
+      title: '第2周：陌生人简短互动',
+      tasks: [
+        '给不熟的人打电话（快递、外卖、客服）',
+        '超市问店员问题',
+        '提前准备要说的话'
+      ]
+    },
+    week3: {
+      title: '第3周：熟人单独见面',
+      tasks: [
+        '主动约1个熟人',
+        '选轻松场所（咖啡厅、公园）',
+        '控制在1-2小时'
+      ]
+    },
+    week4: {
+      title: '第4周：小规模群体社交',
+      tasks: [
+        '参加3-5人小聚',
+        '可带熟人同去',
+        '允许自己提前离开（但必须去）'
+      ]
+    },
+    principle: '从舒适区边缘开始，逐步扩展。每周至少完成1个任务，不要一次性全做完。'
+  }
+  // 剂量调整
+  if (severity === 'mild') base.principle += '（轻度：每周≥1个任务）'
+  else if (severity === 'moderate') base.principle += '（中度：每周≥2个任务）'
+  else base.principle += '（重度：每周≥3个任务，建议专业支持）'
+  return base
+}
+
+function buildLongTermPath(severity, type, highDims) {
+  const weeks = severity === 'mild' ? '4-6周' : severity === 'moderate' ? '8-12周' : '12-16周+'
+  const focusDim = highDims[0] || 'anticipation'
+  return [
+    { stage: '阶段1：认知重建', duration: '1-2周', goal: '识别并修正非理性信念', modules: ['自动化想法识别', '证据对照', '替代性思维'], emphasis: type.id === 'fear_evaluation' ? '聚焦他人评价相关信念' : '聚焦泛化消极信念' },
+    { stage: '阶段2：系统暴露', duration: weeks, goal: '逐步面对恐惧情境', modules: ['暴露阶梯', '安全行为减少', '意象→线下过渡'], emphasis: `优先处理维度：${focusDim}` },
+    { stage: '阶段3：技能训练', duration: '2-4周', goal: '建立稳定社交技能', modules: ['开启话题', '维持对话', '边界与拒绝'], emphasis: '把技能练到“够用”，而非完美' },
+    { stage: '阶段4：关系拓展', duration: '2-4周', goal: '提升关系质量', modules: ['扩大弱关系网络', '高质量连接', '反馈性沟通'], emphasis: '每周新增1个低风险连接' },
+    { stage: '阶段5：维护与复发预防', duration: '长期', goal: '巩固成果，防止反弹', modules: ['预警信号清单', '复发应对计划', '高峰-低谷正常化'], emphasis: '出现倒退时用“回到第1个有效动作”' }
+  ]
+}
+
+function buildMetrics(severity, highDims) {
+  const baseline = severity === 'mild' ? 6 : severity === 'moderate' ? 8 : 10
+  return [
+    { name: '主观焦虑SUDs（0-10）', target: `较基线下降≥${severity === 'mild' ? 2 : 3}` },
+    { name: '每周社交行动次数', target: `≥${baseline}` },
+    { name: '反刍时长（分钟/次）', target: '≤10' },
+    { name: '安全行为使用数', target: '逐周下降' },
+    { name: '自我效能评分（0-10）', target: '逐周上升' }
+  ]
+}
+
+function buildStrengths(protective, basicInfo) {
+  const list = []
+  if (protective.includes('self_efficacy')) list.push('具备一定的自我效能，恢复弹性较好')
+  if (protective.includes('low_scene_fear')) list.push('在部分场景中能够保持稳定')
+  if (basicInfo.social_frequency === 'regular' || basicInfo.social_frequency === 'frequent') list.push('已有社交习惯基础，便于持续练习')
+  if (basicInfo.occupation === 'student') list.push('校园环境提供安全的练习土壤')
+  if (list.length === 0) list.push('愿意面对问题并行动，这是最大的优势')
+  return list
+}
+
+function buildTriggers(highDims) {
+  const mapping = {
+    anticipation: '事件前的过度预演与不确定性',
+    rumination: '事件后的自我苛责与反复回想',
+    avoidance: '对可能被评判的场景的逃避',
+    scene_fear: '人群、目光集中或陌生场合',
+    physical: '突发的生理反应被误读为“危险”',
+    fear_of_negative_evaluation: '关注他人评价与自我价值绑定',
+    functional_impairment: '长期累积的负性反馈与机会流失'
+  }
+  return highDims.map(k => mapping[k]).filter(Boolean)
 }
 
 export default {

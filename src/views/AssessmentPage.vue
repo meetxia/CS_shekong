@@ -52,11 +52,15 @@
                 v-for="option in question.options"
                 :key="`${question.id}-${option.id}`"
                 class="info-option"
-                :class="{ 'selected': basicInfo[question.id] === option.value }"
-                @click.stop="selectBasicInfo(question.id, option.value)"
+                :class="{ 'selected': isBasicInfoSelected(question.id, option.value) }"
+                @click="handleBasicInfoClick(question.id, option.value)"
               >
                 <span class="info-option-text">{{ option.text }}</span>
-                <span v-if="basicInfo[question.id] === option.value" class="iconify" data-icon="mdi:check-circle" data-width="20"></span>
+                <!-- 使用内联 SVG，避免 Iconify 运行时篡改 DOM 导致的补丁错误 -->
+                <svg v-if="isBasicInfoSelected(question.id, option.value)" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+                  <path d="M7 12.5L10 15.5L17 8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
               </div>
             </div>
           </div>
@@ -262,27 +266,39 @@ const progressPercent = computed(() => {
 
 // ========== 基础信息相关函数 ==========
 
-// 选择基础信息
-const selectBasicInfo = (questionId, value) => {
-  // 确保单选逻辑：直接设置值，确保该问题只有一个值被选中
-  // Vue 3 reactive 对象直接赋值即可触发响应式更新
-  basicInfo[questionId] = value
+// 检查基础信息选项是否被选中
+const isBasicInfoSelected = (questionId, value) => {
+  return basicInfo[questionId] === value
+}
+
+// 处理基础信息点击事件
+const handleBasicInfoClick = (questionId, value) => {
+  console.log('点击基础信息选项:', questionId, value, '当前值:', basicInfo[questionId])
+
+  // 单选逻辑：直接设置新值
+  if (basicInfo[questionId] === value) {
+    // 点击已选中的选项，取消选中
+    basicInfo[questionId] = null
+  } else {
+    // 选中新选项
+    basicInfo[questionId] = value
+  }
+
+  console.log('更新后的值:', basicInfo[questionId])
+
+  // 立即保存
   saveBasicInfo()
-  
+
   // 移动端：填写完前三题后自动跳转到星座题
   if (isMobile.value && basicInfoPageIndex.value === 0) {
     const firstThreeQuestions = ['age', 'gender', 'social_frequency']
     const allFirstThreeAnswered = firstThreeQuestions.every(id => basicInfo[id])
-    
+
     if (allFirstThreeAnswered) {
       // 延迟跳转，让用户看到选择效果
-      nextTick(() => {
-        setTimeout(() => {
-          if (showBasicInfoPage.value) {
-            basicInfoPageIndex.value = 1
-          }
-        }, 300)
-      })
+      setTimeout(() => {
+        basicInfoPageIndex.value = 1
+      }, 300)
     }
   }
 }
@@ -300,24 +316,42 @@ const startAssessment = () => {
 
 // 保存基础信息
 const saveBasicInfo = () => {
-  localStorage.setItem('test_basic_info', JSON.stringify(basicInfo))
+  try {
+    // 创建一个纯对象来保存，避免保存响应式代理
+    const dataToSave = {}
+    Object.keys(basicInfo).forEach(key => {
+      if (basicInfo[key] !== null && basicInfo[key] !== undefined) {
+        dataToSave[key] = basicInfo[key]
+      }
+    })
+    localStorage.setItem('test_basic_info', JSON.stringify(dataToSave))
+  } catch (e) {
+    console.error('保存基础信息失败:', e)
+  }
 }
 
-// 加载基础信息
+// 加载基础信息（强制为单选值，兼容历史上可能存为数组的情况）
 const loadBasicInfo = () => {
-  const saved = localStorage.getItem('test_basic_info')
-  if (saved) {
-    try {
+  try {
+    const saved = localStorage.getItem('test_basic_info')
+    if (saved) {
       const data = JSON.parse(saved)
-      // 确保加载的数据格式正确，每个问题只有一个值（字符串或有效值）
+      // 清空现有数据
+      Object.keys(basicInfo).forEach(key => {
+        delete basicInfo[key]
+      })
+      // 加载新数据，确保每个问题只有一个值
       Object.keys(data).forEach(key => {
         if (data[key] !== null && data[key] !== undefined) {
-          basicInfo[key] = data[key]
+          const value = Array.isArray(data[key]) ? data[key][0] : data[key]
+          basicInfo[key] = value
         }
       })
-    } catch (e) {
-      console.error('加载基础信息失败:', e)
     }
+  } catch (e) {
+    console.error('加载基础信息失败:', e)
+    // 加载失败时清空 localStorage
+    localStorage.removeItem('test_basic_info')
   }
 }
 
@@ -720,6 +754,10 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .info-option:hover {
@@ -738,6 +776,7 @@ onMounted(() => {
   font-size: 14px;
   color: var(--text-body);
   line-height: 1.2;
+  pointer-events: none;
 }
 
 .info-option.selected .info-option-text {
@@ -747,6 +786,8 @@ onMounted(() => {
 
 .info-option .iconify {
   color: var(--primary);
+  pointer-events: none;
+  margin-left: 4px;
 }
 
 .btn-start-assessment {

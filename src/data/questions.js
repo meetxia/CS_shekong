@@ -592,35 +592,35 @@ export const scoringCriteria = {
       level: 'normal',
       title: '社交自如型',
       color: '#10b981', // 绿色
-      desc: '你在社交场合中表现自然，很少感到焦虑。'
+      desc: '你在社交场合中表现自然，很少感到焦虑'
     },
     {
       range: [31, 50],
       level: 'mild',
       title: '轻度社交焦虑',
       color: '#3b82f6', // 蓝色
-      desc: '你在某些社交场景中会感到紧张，但总体可控。'
+      desc: '你在某些社交中会感到紧张，但总体可控。'
     },
     {
       range: [51, 70],
       level: 'moderate',
       title: '中度社交焦虑',
       color: '#f59e0b', // 橙色
-      desc: '社交焦虑已经明显影响你的日常生活。'
+      desc: '已经明显影响你的日常生活'
     },
     {
       range: [71, 90],
       level: 'severe',
       title: '重度社交焦虑',
       color: '#ef4444', // 红色
-      desc: '社交焦虑严重影响了你的生活质量，建议寻求专业帮助。'
+      desc: '严重影响了你的生活'
     },
     {
       range: [91, 100],
       level: 'extreme',
       title: '极重度社交焦虑',
       color: '#991b1b', // 深红色
-      desc: '你正在经历严重的社交困扰，强烈建议尽快咨询专业心理医生。'
+      desc: '建议尽快咨询专业心理医生。'
     }
   ]
 }

@@ -33,6 +33,13 @@
           <span class="iconify" data-icon="mdi:chart-box" data-width="18" data-height="18"></span>
           <span>报告</span>
         </router-link>
+        <!-- 激活码状态（桌面端） -->
+        <div v-if="hasActivation && activationStatus" class="activation-status desktop-only">
+          <span class="iconify" data-icon="mdi:key-variant" data-width="14" data-height="14"></span>
+          <span class="status-text">
+            剩余{{ activationStatus.daysLeft }}天 · 今日{{ activationStatus.remainingToday }}/{{ activationStatus.dailyLimit }}
+          </span>
+        </div>
       </nav>
 
       <!-- 右侧：工具按钮 -->
@@ -129,6 +136,11 @@
               <span class="iconify" data-icon="mdi:chart-box" data-width="18" data-height="18"></span>
               <span>报告</span>
             </router-link>
+            <!-- 激活码状态（移动端） -->
+            <div v-if="hasActivation && activationStatus" class="popover-item activation-status-mobile">
+              <span class="iconify" data-icon="mdi:key-variant" data-width="18" data-height="18"></span>
+              <span>激活码剩余：{{ activationStatus.daysLeft }}天 · 今日：{{ activationStatus.remainingToday }}/{{ activationStatus.dailyLimit }}</span>
+            </div>
           </div>
         </div>
       </transition>
@@ -140,7 +152,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useColorScheme } from '@/composables/useColorScheme'
-import { checkActivation } from '@/utils/activation'
+import { checkActivation, getActivationStatus } from '@/utils/activation'
 import { showShareModal } from '@/utils/shareCard'
 
 const route = useRoute()
@@ -149,6 +161,7 @@ const { currentScheme, colorSchemes, setColorScheme } = useColorScheme()
 
 const showColorPicker = ref(false)
 const showMobileMenu = ref(false)
+const activationStatus = ref(null)
 
 const currentPath = computed(() => route.path)
 
@@ -159,6 +172,17 @@ const hasActivation = computed(() => {
 const hasReport = computed(() => {
   return localStorage.getItem('test_report') !== null
 })
+
+// 获取激活码状态
+const loadActivationStatus = async () => {
+  if (hasActivation.value) {
+    try {
+      activationStatus.value = await getActivationStatus()
+    } catch (e) {
+      console.error('获取激活码状态失败:', e)
+    }
+  }
+}
 
 const selectScheme = (schemeId) => {
   setColorScheme(schemeId)
@@ -193,8 +217,14 @@ watch(showMobileMenu, (open) => {
   document.body.style.overflow = open ? 'hidden' : ''
 })
 
+// 监听路由变化，更新激活码状态
+watch(() => route.path, () => {
+  loadActivationStatus()
+})
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
+  loadActivationStatus()
 })
 
 onBeforeUnmount(() => {
@@ -526,6 +556,48 @@ onBeforeUnmount(() => {
 }
 
 .popover-item .iconify { color: var(--primary); }
+
+/* 激活码状态样式 */
+.activation-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--bg-section);
+  color: var(--text-body);
+  font-size: 12px;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+.activation-status .iconify {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.status-text {
+  font-weight: 500;
+}
+
+/* 移动端激活码状态 */
+.activation-status-mobile {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: default;
+}
+
+.activation-status-mobile:hover {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.activation-status-mobile .iconify {
+  color: var(--primary);
+}
 
 /* 响应式 */
 .desktop-only {
