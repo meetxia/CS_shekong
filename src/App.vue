@@ -1,25 +1,22 @@
 <template>
   <div id="app" :class="colorScheme">
-    <AppHeader v-if="showHeader" />
+    <AppHeader />
     <router-view v-slot="{ Component }">
       <transition name="fade" mode="out-in">
         <component :is="Component" />
       </transition>
     </router-view>
   </div>
- </template>
+</template>
 
 <script setup>
 import { computed, onMounted, watch, ref } from 'vue'
-import { useRoute } from 'vue-router'
 import { useColorScheme } from './composables/useColorScheme'
 import AppHeader from '@/components/AppHeader.vue'
 
 const { currentScheme, initColorScheme } = useColorScheme()
 const colorScheme = computed(() => currentScheme.value || 'scheme1-light')
 const previousScheme = ref('')
-const route = useRoute()
-const showHeader = computed(() => route.meta.hideHeader !== true)
 
 onMounted(() => {
   initColorScheme()

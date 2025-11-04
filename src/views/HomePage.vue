@@ -228,9 +228,9 @@
     '社交场景恐惧',
     '回避行为程度',
     '预期焦虑强度',
+    '负面评价恐惧',
     '社交后反刍',
-    '生理反应强度',
-    '社交自我效能'
+    '功能损害程度'
   ]
   
   const hasActivation = computed(() => {
@@ -261,7 +261,7 @@
     flex-direction: column;
     justify-content: space-between;
     min-height: 100vh;
-    padding: 40px 20px;
+    padding: 60px 20px 40px 20px;
     position: relative;
     background: var(--bg-main);
   }
@@ -308,7 +308,7 @@
   }
   
   .logo-area {
-    padding: 24px 0;
+    padding: 24px 0 0 0;
   }
   
   .brand-badge {
@@ -322,7 +322,6 @@
     font-size: 12px;
     font-weight: 600;
     margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
   
   .brand-name {
@@ -366,7 +365,6 @@
     position: relative;
     overflow: hidden;
     border: 1px solid var(--border);
-    box-shadow: 0 4px 16px var(--shadow-medium);
   }
   
   .card-header-group {
@@ -459,7 +457,6 @@
   .feature-item:hover {
     background: var(--bg-card);
     transform: translateX(4px);
-    box-shadow: 0 2px 8px var(--shadow);
   }
   
   .feature-icon-wrapper {
@@ -550,7 +547,6 @@
     padding: 28px 24px;
     margin-bottom: 28px;
     border: 1px solid var(--border);
-    box-shadow: 0 2px 12px var(--shadow);
   }
   
   .section-header {
@@ -628,7 +624,6 @@
     font-size: 12px;
     font-weight: 700;
     flex-shrink: 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
   .dimension-name {
@@ -650,7 +645,6 @@
     border-color: var(--primary);
     background: var(--bg-card);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px var(--shadow-medium);
   }
   
   .dimension-tag:hover .dimension-icon {
@@ -672,7 +666,6 @@
     font-size: 17px;
     font-weight: 700;
     margin-bottom: 20px;
-    box-shadow: 0 6px 20px var(--shadow-deep);
     border: none;
     position: relative;
     overflow: hidden;
@@ -709,7 +702,6 @@
   
   .btn-start:hover:not(:disabled) {
     transform: translateY(-3px);
-    box-shadow: 0 8px 28px var(--shadow-deep);
   }
   
   .btn-start:hover:not(:disabled) .btn-icon {
@@ -788,7 +780,6 @@
   max-height: 80vh;
   overflow-y: auto;
   animation: slideUp 0.3s ease;
-  box-shadow: 0 8px 32px var(--shadow-deep);
   border: 1px solid var(--border);
 }
 
@@ -835,7 +826,7 @@
   /* 响应式 */
   @media (max-width: 480px) {
     .home-page {
-      padding: 24px 16px;
+      padding: 15% 16px 24px 16px;
     }
     
     .brand-name {

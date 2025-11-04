@@ -46,6 +46,26 @@
           <span class="iconify" data-icon="mdi:palette" data-width="20" data-height="20"></span>
         </button>
 
+        <!-- 报告页：返回测评 -->
+        <button
+          v-if="currentPath === '/report'"
+          @click="goAssessment"
+          class="icon-btn desktop-only"
+          title="返回测评"
+        >
+          <span class="iconify" data-icon="mdi:arrow-left" data-width="20" data-height="20"></span>
+        </button>
+
+        <!-- 报告页：分享结果 -->
+        <button
+          v-if="currentPath === '/report'"
+          @click="openShareFromHeader"
+          class="icon-btn desktop-only"
+          title="分享结果"
+        >
+          <span class="iconify" data-icon="mdi:share-variant" data-width="20" data-height="20"></span>
+        </button>
+
         <!-- 移动端菜单按钮（汉堡动效） -->
         <button
           @click="toggleMobileMenu"
@@ -118,11 +138,13 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useColorScheme } from '@/composables/useColorScheme'
 import { checkActivation } from '@/utils/activation'
+import { showShareModal } from '@/utils/shareCard'
 
 const route = useRoute()
+const router = useRouter()
 const { currentScheme, colorSchemes, setColorScheme } = useColorScheme()
 
 const showColorPicker = ref(false)
@@ -141,6 +163,19 @@ const hasReport = computed(() => {
 const selectScheme = (schemeId) => {
   setColorScheme(schemeId)
   showColorPicker.value = false
+}
+
+const goAssessment = () => {
+  router.push('/assessment')
+}
+
+const openShareFromHeader = () => {
+  const raw = localStorage.getItem('test_report')
+  if (!raw) return
+  try {
+    const report = JSON.parse(raw)
+    showShareModal(report)
+  } catch (e) {}
 }
 
 const toggleMobileMenu = () => {
@@ -170,17 +205,19 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .app-header {
-  position: sticky;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   height: 56px; /* 统一导航高度，供下层页面计算可用高度 */
-  background: var(--bg-card);
   border-bottom: 1px solid var(--border);
-  box-shadow: 0 2px 8px var(--shadow);
-  z-index: 100;
-  backdrop-filter: blur(10px);
-  background: rgba(var(--bg-card-rgb), 0.95);
+  z-index: 2000; /* 确保永远浮在内容区之上 */
+  background: var(--bg-card);
+  /* 优化渲染性能和清晰度 */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .header-container {
@@ -342,36 +379,29 @@ onBeforeUnmount(() => {
 /* 配色选择器弹窗 */
 .color-picker-modal {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  inset: 0;
+  background: transparent;
   z-index: 1000;
-  backdrop-filter: blur(4px);
 }
 
 .color-picker-content {
+  position: fixed;
+  right: 12px;
+  top: calc(env(safe-area-inset-top, 0px) + 56px);
   background: var(--bg-card);
-  border-radius: 12px;
-  padding: 16px;
-  width: calc(100% - 32px);
-  max-width: 380px;
-  max-height: 78vh;
-  overflow: auto;
-  box-shadow: 0 6px 24px var(--shadow-deep);
   border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  width: min(86vw, 320px);
+  max-height: 70vh;
+  overflow: auto;
 }
 
 .picker-title {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-title);
-  margin-bottom: 20px;
-  text-align: center;
+  margin: 4px 4px 10px 4px;
 }
 
 .color-schemes {
@@ -379,7 +409,7 @@ onBeforeUnmount(() => {
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
-.color-schemes.minimal { grid-template-columns: 1fr; gap: 8px; }
+.color-schemes.minimal { grid-template-columns: 1fr; gap: 6px; }
 
 .scheme-item {
   box-sizing: border-box;
@@ -394,26 +424,24 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-radius: 10px;
 }
 
 .scheme-item:hover {
   border-color: var(--primary);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--shadow-medium);
 }
 
 .scheme-item.active {
   border-color: var(--primary);
   background: var(--bg-card);
-  box-shadow: 0 2px 12px var(--shadow-medium);
 }
 
 .scheme-chip {
   position: relative;
-  width: 86px;
-  height: 28px;
+  width: 84px;
+  height: 26px;
   border-radius: 8px;
   overflow: hidden;
   background: var(--bg-section);
@@ -477,7 +505,6 @@ onBeforeUnmount(() => {
   color: var(--text-body);
   border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 12px 32px var(--shadow-deep);
   padding: 8px;
   animation: pop-in 160ms ease;
 }

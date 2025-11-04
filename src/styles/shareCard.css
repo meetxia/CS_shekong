@@ -34,7 +34,6 @@
   max-width: 440px;
   max-height: 90vh;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   animation: modalSlideUp 0.3s ease-out;
 }
 
@@ -90,6 +89,61 @@
   overflow-y: auto;
 }
 
+/* === 背景颜色切换 === */
+.theme-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--bg-section);
+  border-radius: 8px;
+  align-items: center;
+}
+
+.theme-selector-label {
+  font-size: 13px;
+  color: var(--text-body);
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.theme-option {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.theme-option:hover {
+  transform: scale(1.1);
+  border-color: var(--primary);
+}
+
+.theme-option.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--primary);
+}
+
+.theme-option[data-theme="light"] {
+  background: #FFFFFF;
+  border: 2px solid #E5E5E5;
+}
+
+.theme-option[data-theme="warm"] {
+  background: linear-gradient(135deg, #FFF5F0 0%, #FFE5D5 100%);
+}
+
+.theme-option[data-theme="cool"] {
+  background: linear-gradient(135deg, #F0F5FF 0%, #D5E5FF 100%);
+}
+
+.theme-option[data-theme="dark"] {
+  background: linear-gradient(135deg, #2A2A2A 0%, #1A1A1A 100%);
+}
+
 /* === 标签页切换 === */
 .card-tabs {
   display: flex;
@@ -114,14 +168,12 @@
   border-color: var(--primary);
   color: var(--primary);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px var(--shadow);
 }
 
 .tab-btn.active {
   background: var(--primary);
   border-color: var(--primary);
   color: #FFFFFF;
-  box-shadow: 0 2px 8px var(--shadow-medium);
 }
 
 /* === 卡片预览区域 === */
@@ -140,8 +192,29 @@
   background: var(--bg-card);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  transition: background 0.3s ease;
+}
+
+/* 卡片背景颜色主题 */
+.share-card[data-theme="light"] {
+  background: #FFFFFF;
+  color: #1A1A1A;
+}
+
+.share-card[data-theme="warm"] {
+  background: linear-gradient(135deg, #FFF5F0 0%, #FFFAF5 100%);
+  color: #2A1A10;
+}
+
+.share-card[data-theme="cool"] {
+  background: linear-gradient(135deg, #F0F5FF 0%, #F5FAFF 100%);
+  color: #0A1A2A;
+}
+
+.share-card[data-theme="dark"] {
+  background: linear-gradient(135deg, #2A2A2A 0%, #1A1A1A 100%);
+  color: #F5F5F5;
 }
 
 .share-card .card-header {
@@ -208,25 +281,25 @@
 }
 
 .score-card .total-score {
-  font-size: 48px;
-  font-weight: 700;
+  font-size: 72px;
+  font-weight: 900;
   color: var(--primary);
   line-height: 1;
-  margin-bottom: 8px;
 }
 
 .score-card .total-score .unit {
-  font-size: 20px;
-  font-weight: 400;
+  font-size: 28px;
+  font-weight: 600;
   color: var(--text-body);
-  margin-left: 4px;
+  margin-left: 6px;
 }
 
 .score-card .percentile {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--text-title);
   margin-bottom: 24px;
-  font-weight: 600;
+  font-weight: 500;
+  opacity: 0.85;
 }
 
 /* 分数刻度 */
@@ -254,17 +327,22 @@
   border: 3px solid var(--primary);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .scale-labels {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 40px;
   font-size: 11px;
   color: var(--text-body);
   text-align: center;
   line-height: 1.4;
   font-weight: 500;
+}
+
+.scale-labels span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 /* 二维码提示 */
@@ -461,13 +539,12 @@
 
 .btn-primary {
   background: var(--primary);
-  color: #FFFFFF;
+  color: #000000;
 }
 
 .btn-primary:hover {
   opacity: 0.9;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
 
 /* === 提示文字 === */

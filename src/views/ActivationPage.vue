@@ -1,9 +1,5 @@
 <template>
   <div class="activation-page container page">
-    <!-- 返回首页按钮 -->
-    <button @click="goHome" class="btn-back-home">
-      &lt; 返回首页
-    </button>
 
     <div class="content">
       <!-- 标题区域 -->
@@ -39,7 +35,6 @@
           :class="{ 'focused': isFocused, 'error': error }"
           maxlength="14"
         />
-        <p class="input-hint text-secondary">激活码格式：XXXX-XXXX-XXXX</p>
         <p v-if="error" class="error-text">{{ error }}</p>
       </div>
 
@@ -144,8 +139,9 @@ onMounted(() => {
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  min-height: 100vh;
-  padding: 60px 20px 40px;
+  /* 视口内包含了顶部 56px Header，高度需扣除，避免出现一屏外溢 */
+  min-height: calc(100vh - 56px);
+  padding: 10% 20px 20px;
   position: relative;
 }
 
@@ -309,7 +305,7 @@ onMounted(() => {
   width: 100%;
   max-width: 500px;
   text-align: center;
-  padding-top: 40px;
+  padding-top: 28px;
 }
 
 .divider-small {
@@ -330,8 +326,12 @@ onMounted(() => {
   }
   
   .activation-page {
-    padding: 40px 20px 30px;
+    padding: 30% 20px 24px; /* 小屏进一步减少底部留白，确保一屏可见 */
   }
+
+  .header { margin-bottom: 28px; }
+  .intro { margin-bottom: 28px; }
+  .footer { padding-top: 20px; }
 }
 </style>
 

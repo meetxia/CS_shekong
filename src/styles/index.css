@@ -21,6 +21,10 @@ body {
   font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', -apple-system, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* 确保文字清晰，不模糊 */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 #app {
@@ -32,7 +36,7 @@ body {
 /* 容器样式 */
 .container {
   max-width: 100%;
-  padding: 0 20px;
+  padding: 0 20px 20px 20px;
   min-height: 100vh;
 }
 

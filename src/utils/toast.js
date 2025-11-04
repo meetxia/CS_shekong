@@ -24,7 +24,6 @@ export function showToast(message, duration = 2000, type = 'info') {
     background: ${colors[type] || colors.info};
     color: #ffffff;
     animation: toastIn 0.25s ease;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
     border: 1px solid rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
     will-change: transform, opacity;
