@@ -53,9 +53,16 @@
       </button>
 
       <!-- 帮助文字 -->
-      <p class="help-text text-secondary fade-in" style="animation-delay: 0.4s">
-        激活码无效？请检查格式或联系客服
-      </p>
+      <div class="help-section fade-in" style="animation-delay: 0.4s">
+        <p class="help-text text-secondary">
+          激活码无效？请检查格式或联系客服
+        </p>
+        <div class="help-tips">
+          <p class="tip-item">💡 每天可测评 3 次，有效期 7 天</p>
+          <p class="tip-item">🕐 今日次数用完？明天 00:00 自动恢复</p>
+          <p class="tip-item">📧 需要帮助？请联系客服获取支持</p>
+        </div>
+      </div>
     </div>
 
     <!-- 底部说明 -->
@@ -103,23 +110,51 @@ const handleStart = async () => {
   error.value = ''
 
   try {
-    const valid = await verifyActivationCode(activationCode.value)
+    const result = await verifyActivationCode(activationCode.value)
     
-    if (valid) {
-      saveActivation(activationCode.value)
-      showToast('激活成功！', 1500, 'success')
+    if (result.valid) {
+      // 兼容旧版本（如果返回的是 boolean）
+      if (typeof result === 'boolean') {
+        saveActivation(activationCode.value)
+      }
+      
+      // 成功提示
+      const successMsg = result.data 
+        ? `激活成功！有效期 ${result.data.daysLeft} 天，每天 3 次测评机会`
+        : '激活成功！'
+      
+      showToast(successMsg, 2000, 'success')
       
       // 延迟跳转以显示成功提示
       setTimeout(() => {
         router.push('/assessment')
-      }, 1500)
+      }, 2000)
     } else {
-      error.value = '激活码无效，请检查后重试'
-      showToast('激活码无效，请检查后重试', 2000, 'error')
+      // 智能错误提示
+      const errorType = result.error || 'UNKNOWN'
+      const mainMsg = result.message || '激活失败，请稍后重试'
+      const tipMsg = result.tip || ''
+      const icon = result.icon || ''
+      
+      // 设置错误信息（显示在输入框下方）
+      error.value = mainMsg
+      
+      // Toast 提示（更详细）
+      let toastMsg = icon ? `${icon} ${mainMsg}` : mainMsg
+      if (tipMsg) {
+        toastMsg = `${mainMsg}\n${tipMsg}`
+      }
+      
+      // 根据错误类型设置不同的提示样式
+      const toastType = errorType === 'DAILY_LIMIT_REACHED' ? 'warning' : 'error'
+      const duration = errorType === 'DAILY_LIMIT_REACHED' ? 3000 : 2500
+      
+      showToast(toastMsg, duration, toastType)
     }
   } catch (err) {
-    error.value = '验证失败，请稍后重试'
-    showToast('验证失败，请稍后重试', 2000, 'error')
+    error.value = '网络异常，请检查网络后重试'
+    showToast('网络异常，请检查网络后重试', 2000, 'error')
+    console.error('激活码验证异常:', err)
   } finally {
     loading.value = false
   }
@@ -295,9 +330,31 @@ onMounted(() => {
 }
 
 /* 帮助文字 */
+.help-section {
+  width: 100%;
+  text-align: center;
+}
+
 .help-text {
   font-size: 12px;
-  text-align: center;
+  margin-bottom: 16px;
+}
+
+.help-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--bg-section);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.tip-item {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: left;
+  line-height: 1.6;
 }
 
 /* 底部 */

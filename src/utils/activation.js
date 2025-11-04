@@ -37,10 +37,16 @@ export function formatActivationCode(input) {
 }
 
 // 验证激活码（使用 Supabase 或本地模拟）
+// 返回格式：{ valid: boolean, error: string, message: string, data: object }
 export async function verifyActivationCode(code) {
   // 格式验证
   if (!validateActivationCode(code)) {
-    return false
+    return {
+      valid: false,
+      error: 'INVALID_FORMAT',
+      message: '激活码格式错误，请检查后重试',
+      tip: '正确格式：XXXX-XXXX-XXXX（12位数字和大写字母）'
+    }
   }
 
   // 如果配置了 Supabase，使用 Supabase 验证
@@ -56,35 +62,125 @@ export async function verifyActivationCode(code) {
 
       if (error) {
         console.error('激活码验证错误:', error)
-        return false
+        return {
+          valid: false,
+          error: 'SERVER_ERROR',
+          message: '验证服务暂时不可用，请稍后重试',
+          tip: '如果问题持续，请联系客服'
+        }
       }
 
       if (data && data.valid) {
         // 验证成功，保存激活信息到本地
         saveActivationFromSupabase(code, data)
-        return true
+        return {
+          valid: true,
+          data: {
+            daysLeft: data.days_left,
+            remainingToday: data.remaining_today
+          }
+        }
       } else {
-        console.error('激活码验证失败:', data?.error || '未知错误')
-        return false
+        // 根据错误类型返回不同的提示
+        const errorMsg = data?.error || '未知错误'
+        return parseActivationError(errorMsg, data)
       }
     } catch (err) {
       console.error('激活码验证异常:', err)
-      return false
+      return {
+        valid: false,
+        error: 'NETWORK_ERROR',
+        message: '网络连接失败，请检查网络后重试',
+        tip: '请确保网络畅通'
+      }
     }
   }
 
   // 本地模拟模式（开发/测试用）
   await new Promise(resolve => setTimeout(resolve, 800))
   
-  // 测试激活码
-  const validCodes = [
-    'TEST-2024-ABCD',
-    'DEMO-1234-5678',
-    'MVPX-XXXX-YYYY'
-  ]
-  
   // 简单验证：格式正确即可通过（开发阶段）
-  return validateActivationCode(code)
+  return {
+    valid: true,
+    data: {
+      daysLeft: 7,
+      remainingToday: 3
+    }
+  }
+}
+
+// 解析激活码错误信息，返回友好提示
+function parseActivationError(errorMsg, data) {
+  const msg = errorMsg.toLowerCase()
+  
+  // 激活码不存在
+  if (msg.includes('不存在') || msg.includes('not found')) {
+    return {
+      valid: false,
+      error: 'CODE_NOT_FOUND',
+      message: '激活码不存在，请检查后重试',
+      tip: '请确认激活码是否输入正确，或联系客服获取激活码'
+    }
+  }
+  
+  // 激活码已失效/被撤销
+  if (msg.includes('已失效') || msg.includes('revoked')) {
+    return {
+      valid: false,
+      error: 'CODE_REVOKED',
+      message: '该激活码已失效，无法继续使用',
+      tip: '请联系客服了解详情或获取新的激活码'
+    }
+  }
+  
+  // 激活码已过期
+  if (msg.includes('已过期') || msg.includes('expired')) {
+    return {
+      valid: false,
+      error: 'CODE_EXPIRED',
+      message: '激活码已过期，有效期已结束',
+      tip: '激活码有效期为 7 天，请联系客服获取新的激活码'
+    }
+  }
+  
+  // 使用次数已达上限（总次数）
+  if (msg.includes('使用次数已达上限') || msg.includes('max uses')) {
+    return {
+      valid: false,
+      error: 'MAX_USES_REACHED',
+      message: '该激活码使用次数已用完',
+      tip: '每个激活码最多可使用 21 次（7天×3次/天），请联系客服获取新码'
+    }
+  }
+  
+  // 今日使用次数已达上限
+  if (msg.includes('今日使用次数') || msg.includes('daily limit')) {
+    return {
+      valid: false,
+      error: 'DAILY_LIMIT_REACHED',
+      message: '今日测评次数已用完，明天再来吧～',
+      tip: '每天可测评 3 次，明天 00:00 自动恢复',
+      icon: '😊'
+    }
+  }
+  
+  // 激活码状态异常
+  if (msg.includes('状态') || msg.includes('status')) {
+    return {
+      valid: false,
+      error: 'INVALID_STATUS',
+      message: '激活码状态异常，请联系客服',
+      tip: '请提供激活码以便客服帮您查询'
+    }
+  }
+  
+  // 默认错误
+  return {
+    valid: false,
+    error: 'UNKNOWN_ERROR',
+    message: '激活失败，请稍后重试',
+    tip: errorMsg || '如果问题持续，请联系客服'
+  }
 }
 
 // 保存激活状态（从 Supabase 数据保存）

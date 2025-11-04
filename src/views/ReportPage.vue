@@ -742,6 +742,7 @@ onMounted(async () => {
   color: var(--primary);
   font-weight: 700;
   font-size: 18px;
+  transform: translateX(-50%);
 }
 
 .position-label {
