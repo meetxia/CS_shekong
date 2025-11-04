@@ -50,10 +50,6 @@ function generateScoreCard(report) {
     
     <div class="card-footer">
       <p class="hint">长按保存图片 · 查看完整报告</p>
-      <div class="qrcode-hint">
-        <span>扫码测测你的社恐程度 →</span>
-        <div class="qrcode-placeholder">[二维码]</div>
-      </div>
     </div>
   `;
   
@@ -72,7 +68,9 @@ function generateTypeCard(report) {
     '回避型社恐': '<span class="iconify" data-icon="mdi:run" data-width="24" data-height="24"></span>',
     '表演型社恐': '<span class="iconify" data-icon="mdi:microphone" data-width="24" data-height="24"></span>',
     '综合型社恐': '<span class="iconify" data-icon="mdi:swap-horizontal-circle" data-width="24" data-height="24"></span>',
-    '轻度社恐': '<span class="iconify" data-icon="mdi:sprout" data-width="24" data-height="24"></span>'
+    '轻度社恐': '<span class="iconify" data-icon="mdi:sprout" data-width="24" data-height="24"></span>',
+    '负面评价恐惧型社恐': '<span class="iconify" data-icon="mdi:eye" data-width="24" data-height="24"></span>',
+    '功能损害型社恐': '<span class="iconify" data-icon="mdi:alert-circle" data-width="24" data-height="24"></span>'
   };
   
   const icon = typeIcons[type.name] || '<span class="iconify" data-icon="mdi:heart" data-width="24" data-height="24"></span>';
@@ -134,10 +132,10 @@ function generateRadarCard(report) {
       <h3>六维度社恐分析</h3>
     </div>
     
-    <div class="card-body">
-      <div class="radar-chart-container">
-        <canvas id="shareRadarChart" width="300" height="300"></canvas>
-      </div>
+          <div class="card-body">
+        <div class="radar-chart-container">
+          <canvas id="shareRadarChart" width="200" height="200"></canvas>
+        </div>
       
       <div class="dimension-insight">
         <div class="insight-row">
@@ -180,7 +178,9 @@ function getTypeQuote(typeName) {
     '回避型社恐': '逃避不可耻，但迈出一小步会更自由。',
     '表演型社恐': '你的紧张别人看不见，只有你自己在意。',
     '综合型社恐': '社恐不是缺陷，而是你敏感细腻的证明。',
-    '轻度社恐': '你已经很好了，只是需要多一点点勇气。'
+    '轻度社恐': '你已经很好了，只是需要多一点点勇气。',
+    '负面评价恐惧型社恐': '过度在意他人评价，往往忽略了真实的自己。',
+    '功能损害型社恐': '意识到问题，就是改变的第一步。'
   };
   
   return quotes[typeName] || '社恐不是你的错，慢慢来，一切都会好起来。';
@@ -227,10 +227,20 @@ export async function cardToImage(cardElement) {
     // 动态导入库
     const domtoimage = await import('dom-to-image-more');
     
+    // 获取当前主题对应的背景色
+    const theme = cardElement.getAttribute('data-theme') || 'light';
+    const themeColors = {
+      light: '#FFFFFF',
+      warm: '#FFF5F0',
+      cool: '#F0F5FF',
+      dark: '#2A2A2A'
+    };
+    const bgColor = themeColors[theme] || '#FFFFFF';
+    
     // 使用toPng方法生成图片
     const dataUrl = await domtoimage.toPng(cardElement, {
       quality: 1,
-      bgcolor: getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() || '#FFFFFF',
+      bgcolor: bgColor,
       style: {
         transform: 'scale(2)',
         transformOrigin: 'top left',
@@ -263,12 +273,21 @@ async function fallbackToCanvas(element) {
     ctx.scale(2, 2);
     
     // 获取背景颜色
-    const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() || '#FFFFFF';
+    const theme = element.getAttribute('data-theme') || 'light';
+    const themeColors = {
+      light: '#FFFFFF',
+      warm: '#FFF5F0',
+      cool: '#F0F5FF',
+      dark: '#2A2A2A'
+    };
+    const bgColor = themeColors[theme] || '#FFFFFF';
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, rect.width, rect.height);
     
     // 简单提示
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-title').trim() || '#000000';
+    const computedStyle = getComputedStyle(element);
+    const textColor = computedStyle.getPropertyValue('--text-title') || '#000000';
+    ctx.fillStyle = textColor;
     ctx.font = '16px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('请长按截图保存', rect.width / 2, rect.height / 2);
@@ -305,22 +324,30 @@ export function showShareModal(report) {
       </div>
       
       <div class="modal-body">
-        <div class="theme-selector">
-          <span class="theme-selector-label">背景:</span>
-          <div class="theme-option active" data-theme="light" title="浅色"></div>
-          <div class="theme-option" data-theme="warm" title="暖色"></div>
-          <div class="theme-option" data-theme="cool" title="冷色"></div>
-          <div class="theme-option" data-theme="dark" title="深色"></div>
+        <div class="modal-settings">
+          <div class="theme-selector">
+            <div class="theme-selector-row">
+              <span class="theme-selector-label">背景:</span>
+            </div>
+            <div class="theme-selector-row">
+              <div class="theme-option active" data-theme="light" title="浅色"></div>
+              <div class="theme-option" data-theme="warm" title="暖色"></div>
+              <div class="theme-option" data-theme="cool" title="冷色"></div>
+              <div class="theme-option" data-theme="dark" title="深色"></div>
+            </div>
+          </div>
+          
+          <div class="card-tabs">
+            <button class="tab-btn active" data-card="type">类型卡</button>
+            <button class="tab-btn" data-card="score">总分卡</button>
+            <button class="tab-btn" data-card="radar">雷达图</button>
+          </div>
         </div>
         
-        <div class="card-tabs">
-          <button class="tab-btn active" data-card="type">类型卡</button>
-          <button class="tab-btn" data-card="score">总分卡</button>
-          <button class="tab-btn" data-card="radar">雷达图</button>
-        </div>
-        
-        <div class="card-preview" id="cardPreview">
-          <!-- 卡片预览 -->
+        <div class="card-preview-wrapper">
+          <div class="card-preview" id="cardPreview">
+            <!-- 卡片预览 -->
+          </div>
         </div>
       </div>
       
@@ -336,6 +363,7 @@ export function showShareModal(report) {
   // 初始化显示类型卡
   const preview = modal.querySelector('#cardPreview');
   const typeCard = generateTypeCard(report);
+  typeCard.setAttribute('data-theme', 'light');
   preview.appendChild(typeCard);
   
   // 当前选中的主题
@@ -370,7 +398,10 @@ export function showShareModal(report) {
       
       // 如果是雷达图，需要重新渲染图表
       if (cardType === 'radar') {
-        renderRadarForShare(report);
+        // 等待DOM更新后再渲染
+        setTimeout(() => {
+          renderRadarForShare(report, card, currentTheme);
+        }, 100);
       }
     });
   });
@@ -422,11 +453,159 @@ export function showShareModal(report) {
 }
 
 /**
- * 为分享卡片渲染雷达图（简化版）
+ * 为分享卡片渲染雷达图
  */
-function renderRadarForShare(report) {
-  // 这里需要使用ECharts渲染
-  // 实现略，参考ReportPage中的雷达图配置
-  console.log('渲染分享雷达图', report);
+function renderRadarForShare(report, cardElement, theme = 'light') {
+  const canvas = cardElement.querySelector('#shareRadarChart');
+  if (!canvas) {
+    console.error('找不到雷达图canvas元素');
+    return;
+  }
+  
+      // 动态导入echarts
+    import('echarts').then(echarts => {
+      const chartInstance = echarts.init(canvas, null, {
+      renderer: 'canvas',
+      devicePixelRatio: 2,
+      width: 200,
+      height: 200
+    });
+    
+    // 根据主题设置颜色
+    const themeColors = {
+      light: {
+        gridColor: 'rgba(212,165,116,0.25)',
+        lineColor: 'rgba(255,77,79,0.85)',
+        areaColor: 'rgba(255,160,122,0.25)',
+        labelColor: '#2A2A2A',
+        areaGradient: ['rgba(255,160,122,0.04)', 'rgba(255,180,140,0.08)']
+      },
+      warm: {
+        gridColor: 'rgba(232,155,155,0.3)',
+        lineColor: 'rgba(255,77,79,0.9)',
+        areaColor: 'rgba(255,140,120,0.3)',
+        labelColor: '#2A1A10',
+        areaGradient: ['rgba(255,180,140,0.06)', 'rgba(255,200,160,0.1)']
+      },
+      cool: {
+        gridColor: 'rgba(160,180,255,0.25)',
+        lineColor: 'rgba(77,119,255,0.85)',
+        areaColor: 'rgba(140,170,255,0.25)',
+        labelColor: '#0A1A2A',
+        areaGradient: ['rgba(140,170,255,0.04)', 'rgba(160,190,255,0.08)']
+      },
+      dark: {
+        gridColor: 'rgba(212,181,172,0.35)',
+        lineColor: 'rgba(255,180,150,0.9)',
+        areaColor: 'rgba(255,180,150,0.25)',
+        labelColor: '#F5E6D3',
+        areaGradient: ['rgba(212,181,172,0.05)', 'rgba(212,181,172,0.08)']
+      }
+    };
+    
+    const colors = themeColors[theme] || themeColors.light;
+    
+    // 准备雷达图数据
+    const indicatorData = report.dimensions.map(dim => ({
+      name: dim.name,
+      max: dim.maxScore
+    }));
+    
+    const seriesData = report.dimensions.map(dim => dim.score);
+    
+    const option = {
+      backgroundColor: 'transparent',
+      radar: {
+        indicator: indicatorData,
+        radius: '60%',
+        splitNumber: 4,
+        name: {
+          textStyle: {
+            color: colors.labelColor,
+            fontSize: 12,
+            fontWeight: 400
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: colors.gridColor,
+            type: 'solid',
+            width: 1.0
+          }
+        },
+        splitArea: {
+          show: true,
+          areaStyle: {
+            color: colors.areaGradient
+          }
+        },
+        axisLine: {
+          lineStyle: {
+            color: colors.gridColor,
+            width: 1
+          }
+        }
+      },
+      series: [{
+        type: 'radar',
+        data: [{
+          value: seriesData,
+          name: '你的数据',
+          areaStyle: {
+            color: colors.areaColor,
+            opacity: 0.7
+          },
+          lineStyle: {
+            color: colors.lineColor,
+            width: 3,
+            shadowColor: colors.lineColor,
+            shadowBlur: 6
+          },
+          itemStyle: {
+            color: colors.lineColor,
+            borderColor: '#fff',
+            borderWidth: 2,
+            shadowColor: colors.lineColor,
+            shadowBlur: 4
+          },
+          symbolSize: 6,
+          emphasis: {
+            lineStyle: {
+              width: 3.5
+            },
+            itemStyle: {
+              shadowBlur: 8
+            }
+          }
+        }]
+      }]
+    };
+    
+    chartInstance.setOption(option);
+    
+    // 监听主题变化
+    const observer = new MutationObserver(() => {
+      const newTheme = cardElement.getAttribute('data-theme') || 'light';
+      if (newTheme !== theme) {
+        theme = newTheme;
+        const newColors = themeColors[theme] || themeColors.light;
+        option.radar.name.textStyle.color = newColors.labelColor;
+        option.radar.splitLine.lineStyle.color = newColors.gridColor;
+        option.radar.splitArea.areaStyle.color = newColors.areaGradient;
+        option.radar.axisLine.lineStyle.color = newColors.gridColor;
+        option.series[0].data[0].areaStyle.color = newColors.areaColor;
+        option.series[0].data[0].lineStyle.color = newColors.lineColor;
+        option.series[0].data[0].itemStyle.color = newColors.lineColor;
+        chartInstance.setOption(option);
+      }
+    });
+    
+    observer.observe(cardElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+  }).catch(error => {
+    console.error('加载echarts失败:', error);
+  });
 }
 

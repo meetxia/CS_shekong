@@ -1,5 +1,6 @@
 /* 导入主题配色 */
 @import './themes.css';
+@import './admin.css';
 
 /* 全局样式重置 */
 * {

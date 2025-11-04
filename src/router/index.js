@@ -31,7 +31,7 @@ const routes = [
     path: '/report',
     name: 'Report',
     component: () => import('../views/ReportPage.vue'),
-    meta: { title: '测评报告', hideHeader: true },
+    meta: { title: '测评报告' },
     beforeEnter: (to, from, next) => {
       const hasReport = localStorage.getItem('test_report')
       if (!hasReport) {
@@ -40,6 +40,27 @@ const routes = [
         next()
       }
     }
+  },
+  {
+    path: '/admin',
+    name: 'AdminLayout',
+    component: () => import('../views/admin/AdminLayout.vue'),
+    meta: { title: '激活码后台' },
+    children: [
+      { path: '', redirect: { name: 'AdminDashboard' } },
+      {
+        path: 'dashboard',
+        name: 'AdminDashboard',
+        component: () => import('../views/admin/AdminDashboard.vue'),
+        meta: { title: '数据总览' }
+      },
+      {
+        path: 'codes',
+        name: 'AdminCodes',
+        component: () => import('../views/admin/AdminCodes.vue'),
+        meta: { title: '激活码管理' }
+      }
+    ]
   }
 ]
 

@@ -31,10 +31,12 @@
   background: var(--bg-card);
   border-radius: 16px;
   width: 90%;
-  max-width: 440px;
+  max-width: 900px;
   max-height: 90vh;
   overflow: hidden;
   animation: modalSlideUp 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes modalSlideUp {
@@ -85,18 +87,46 @@
 
 .modal-body {
   padding: 20px;
-  max-height: calc(90vh - 140px);
+  flex: 1;
+  display: flex;
+  gap: 20px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 左侧设置区域 */
+.modal-settings {
+  flex: 0 0 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* 右侧预览区域 */
+.card-preview-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: auto;
 }
 
 /* === 背景颜色切换 === */
 .theme-selector {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  margin-bottom: 16px;
   padding: 12px;
   background: var(--bg-section);
   border-radius: 8px;
+}
+
+.theme-selector-row {
+  display: flex;
+  gap: 8px;
   align-items: center;
 }
 
@@ -147,8 +177,8 @@
 /* === 标签页切换 === */
 .card-tabs {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  margin-bottom: 20px;
 }
 
 .tab-btn {
@@ -162,6 +192,8 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .tab-btn:hover {
@@ -180,9 +212,12 @@
 .card-preview {
   display: flex;
   justify-content: center;
-  padding: 20px 0;
+  align-items: center;
+  padding: 20px;
   background: var(--bg-section);
   border-radius: 12px;
+  width: 100%;
+  height: 100%;
   min-height: 400px;
 }
 
@@ -193,13 +228,26 @@
   border-radius: 16px;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* 卡片背景颜色主题 */
+/* 卡片背景颜色主题 - 同时设置文字颜色确保对比度 */
 .share-card[data-theme="light"] {
   background: #FFFFFF;
   color: #1A1A1A;
+}
+
+.share-card[data-theme="light"] .card-header h3,
+.share-card[data-theme="light"] .card-body,
+.share-card[data-theme="light"] .card-footer {
+  color: #1A1A1A;
+}
+
+.share-card[data-theme="light"] .subtitle,
+.share-card[data-theme="light"] .hint,
+.share-card[data-theme="light"] .test-hint,
+.share-card[data-theme="light"] .type-name-en {
+  color: #666666;
 }
 
 .share-card[data-theme="warm"] {
@@ -207,14 +255,53 @@
   color: #2A1A10;
 }
 
+.share-card[data-theme="warm"] .card-header h3,
+.share-card[data-theme="warm"] .card-body,
+.share-card[data-theme="warm"] .card-footer {
+  color: #2A1A10;
+}
+
+.share-card[data-theme="warm"] .subtitle,
+.share-card[data-theme="warm"] .hint,
+.share-card[data-theme="warm"] .test-hint,
+.share-card[data-theme="warm"] .type-name-en {
+  color: #5A3A2A;
+}
+
 .share-card[data-theme="cool"] {
   background: linear-gradient(135deg, #F0F5FF 0%, #F5FAFF 100%);
   color: #0A1A2A;
 }
 
+.share-card[data-theme="cool"] .card-header h3,
+.share-card[data-theme="cool"] .card-body,
+.share-card[data-theme="cool"] .card-footer {
+  color: #0A1A2A;
+}
+
+.share-card[data-theme="cool"] .subtitle,
+.share-card[data-theme="cool"] .hint,
+.share-card[data-theme="cool"] .test-hint,
+.share-card[data-theme="cool"] .type-name-en {
+  color: #2A3A5A;
+}
+
 .share-card[data-theme="dark"] {
   background: linear-gradient(135deg, #2A2A2A 0%, #1A1A1A 100%);
   color: #F5F5F5;
+}
+
+.share-card[data-theme="dark"] .card-header h3,
+.share-card[data-theme="dark"] .card-body,
+.share-card[data-theme="dark"] .card-footer {
+  color: #F5F5F5;
+}
+
+.share-card[data-theme="dark"] .subtitle,
+.share-card[data-theme="dark"] .hint,
+.share-card[data-theme="dark"] .test-hint,
+.share-card[data-theme="dark"] .type-name-en {
+  color: #CCCCCC;
 }
 
 .share-card .card-header {
@@ -226,31 +313,44 @@
 .share-card .card-header h3 {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-title);
   margin: 0 0 4px;
+  transition: color 0.3s ease;
 }
 
 .share-card .subtitle {
   font-size: 12px;
-  color: var(--text-body);
   margin: 0;
+  transition: color 0.3s ease;
 }
 
 .share-card .card-body {
   padding: 20px;
+  transition: color 0.3s ease;
 }
 
 .share-card .card-footer {
   padding: 16px 20px;
-  background: var(--bg-section);
-  border-top: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.02);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
   text-align: center;
+  transition: color 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+}
+
+/* 深色主题下的footer背景 */
+.share-card[data-theme="dark"] .card-footer {
+  background: rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .divider {
   height: 1px;
-  background: var(--border-color);
+  background: rgba(0, 0, 0, 0.1);
   margin: 16px 0;
+  transition: background 0.3s ease;
+}
+
+.share-card[data-theme="dark"] .divider {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* === 总分卡样式 === */
@@ -263,19 +363,24 @@
   margin-bottom: 12px;
 }
 
-.score-card .level-badge.轻度 {
+.score-card .level-badge.轻度,
+.score-card .level-badge.社交自如型 {
   background: rgba(145, 168, 142, 0.15);
   color: #91A88E;
 }
 
 .score-card .level-badge.中度,
-.score-card .level-badge.中度偏轻 {
+.score-card .level-badge.中度偏轻,
+.score-card .level-badge.轻度社交焦虑 {
   background: rgba(212, 165, 116, 0.15);
   color: #D4A574;
 }
 
 .score-card .level-badge.重度,
-.score-card .level-badge.极重度 {
+.score-card .level-badge.极重度,
+.score-card .level-badge.中度社交焦虑,
+.score-card .level-badge.重度社交焦虑,
+.score-card .level-badge.极重度社交焦虑 {
   background: rgba(200, 131, 123, 0.15);
   color: #C8837B;
 }
@@ -285,18 +390,23 @@
   font-weight: 900;
   color: var(--primary);
   line-height: 1;
+  transition: color 0.3s ease;
+}
+
+/* 深色主题下的分数颜色 */
+.share-card[data-theme="dark"] .score-card .total-score {
+  color: #FFB896;
 }
 
 .score-card .total-score .unit {
   font-size: 28px;
   font-weight: 600;
-  color: var(--text-body);
   margin-left: 6px;
+  opacity: 0.7;
 }
 
 .score-card .percentile {
   font-size: 16px;
-  color: var(--text-title);
   margin-bottom: 24px;
   font-weight: 500;
   opacity: 0.85;
@@ -323,49 +433,32 @@
   top: 50%;
   width: 16px;
   height: 16px;
-  background: var(--bg-card);
+  background: #FFFFFF;
   border: 3px solid var(--primary);
   border-radius: 50%;
   transform: translate(-50%, -50%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.share-card[data-theme="dark"] .scale-marker {
+  background: #2A2A2A;
+  border-color: #FFB896;
 }
 
 .scale-labels {
   position: relative;
   height: 40px;
   font-size: 11px;
-  color: var(--text-body);
   text-align: center;
   line-height: 1.4;
   font-weight: 500;
+  opacity: 0.8;
 }
 
 .scale-labels span {
   position: absolute;
   transform: translateX(-50%);
   white-space: nowrap;
-}
-
-/* 二维码提示 */
-.qrcode-hint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 12px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.qrcode-placeholder {
-  width: 40px;
-  height: 40px;
-  border: 1px dashed var(--border-color);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: var(--text-disabled);
 }
 
 /* === 类型卡样式 === */
@@ -376,14 +469,19 @@
   text-align: center;
   margin-bottom: 8px;
   line-height: 1.3;
+  transition: color 0.3s ease;
+}
+
+.share-card[data-theme="dark"] .type-card .type-name {
+  color: #FFB896;
 }
 
 .type-card .type-name-en {
   font-size: 13px;
-  color: var(--text-body);
   text-align: center;
   margin-bottom: 20px;
   font-style: italic;
+  transition: color 0.3s ease;
 }
 
 .features {
@@ -392,19 +490,24 @@
 
 .feature-item {
   font-size: 15px;
-  color: var(--text-title);
   line-height: 1.8;
   padding: 4px 0;
   font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 /* 金句引用 */
 .quote {
   position: relative;
   padding: 16px;
-  background: var(--bg-section);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 12px;
   margin: 16px 0;
+  transition: background 0.3s ease;
+}
+
+.share-card[data-theme="dark"] .quote {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .quote-icon {
@@ -413,6 +516,11 @@
   opacity: 0.3;
   line-height: 1;
   position: absolute;
+  transition: color 0.3s ease;
+}
+
+.share-card[data-theme="dark"] .quote-icon {
+  color: #FFB896;
 }
 
 .quote-icon:first-child {
@@ -428,12 +536,12 @@
 
 .quote-text {
   font-size: 15px;
-  color: var(--text-title);
   line-height: 1.6;
   text-align: center;
   padding: 8px 24px;
   margin: 0;
   font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 .hashtags {
@@ -441,16 +549,36 @@
   color: var(--primary);
   margin-bottom: 8px;
   font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.share-card[data-theme="dark"] .hashtags {
+  color: #FFB896;
 }
 
 /* === 雷达图卡样式 === */
 .radar-chart-container {
   display: flex;
   justify-content: center;
-  padding: 16px 0;
-  background: var(--bg-section);
+  align-items: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.02);
   border-radius: 12px;
   margin-bottom: 16px;
+  transition: background 0.3s ease;
+  height: 200px;
+  overflow: hidden;
+}
+
+.share-card[data-theme="dark"] .radar-chart-container {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.radar-chart-container canvas {
+  max-width: 200px !important;
+  max-height: 200px !important;
+  width: 200px !important;
+  height: 200px !important;
 }
 
 .dimension-insight {
@@ -466,21 +594,31 @@
 }
 
 .insight-row .label {
-  color: var(--text-body);
   font-weight: 500;
+  opacity: 0.8;
+  transition: color 0.3s ease;
 }
 
 .insight-row .value {
   font-weight: 700;
   font-size: 15px;
+  transition: color 0.3s ease;
 }
 
 .insight-row .value.high {
-  color: var(--error);
+  color: #FF4D4F;
 }
 
 .insight-row .value.low {
-  color: var(--success);
+  color: #52C41A;
+}
+
+.share-card[data-theme="dark"] .insight-row .value.high {
+  color: #FF7875;
+}
+
+.share-card[data-theme="dark"] .insight-row .value.low {
+  color: #73D13D;
 }
 
 .pain-point,
@@ -492,17 +630,18 @@
 .quick-tip .label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-title);
   margin-bottom: 6px;
+  transition: color 0.3s ease;
 }
 
 .pain-point p,
 .quick-tip p {
   font-size: 14px;
-  color: var(--text-body);
   line-height: 1.6;
   margin: 0;
   font-weight: 500;
+  opacity: 0.9;
+  transition: color 0.3s ease;
 }
 
 /* === 弹窗底部按钮 === */
@@ -557,23 +696,152 @@
 }
 
 /* === 响应式 === */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .modal-content {
     width: 95%;
     max-width: none;
+    max-height: 95vh;
+    margin: 2.5vh auto;
+  }
+  
+  .modal-body {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  
+  .modal-settings {
+    flex: 0 0 auto;
+    padding-right: 0;
+    overflow-y: visible;
+  }
+  
+  .card-preview-wrapper {
+    flex: 0 0 auto;
+    min-height: 300px;
+    max-height: 400px;
+  }
+  
+  .card-preview {
+    min-height: 300px;
+    padding: 12px;
+  }
+  
+  .card-tabs {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .tab-btn {
+    flex: 1 1 auto;
+    min-width: 80px;
   }
   
   .share-card {
     width: 100%;
-    max-width: 300px;
+    max-width: 280px;
+    transform: scale(0.9);
+    transform-origin: center;
   }
   
   .type-card .type-name {
-    font-size: 24px;
+    font-size: 22px;
+  }
+  
+  .score-card .total-score {
+    font-size: 48px;
+  }
+  
+  .radar-chart-container {
+    height: 180px;
+  }
+  
+  .radar-chart-container canvas {
+    max-width: 160px !important;
+    max-height: 160px !important;
+    width: 160px !important;
+    height: 160px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    width: 98%;
+    max-height: 98vh;
+    margin: 1vh auto;
+  }
+  
+  .modal-header {
+    padding: 12px 16px;
+  }
+  
+  .modal-header h3 {
+    font-size: 16px;
+  }
+  
+  .modal-body {
+    padding: 10px;
+    gap: 10px;
+  }
+  
+  .modal-settings {
+    gap: 12px;
+  }
+  
+  .theme-selector {
+    padding: 8px;
+    gap: 6px;
+  }
+  
+  .theme-option {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .card-preview-wrapper {
+    min-height: 250px;
+    max-height: 350px;
+  }
+  
+  .card-preview {
+    min-height: 250px;
+    padding: 8px;
+  }
+  
+  .share-card {
+    max-width: 260px;
+    transform: scale(0.85);
+  }
+  
+  .type-card .type-name {
+    font-size: 20px;
   }
   
   .score-card .total-score {
     font-size: 42px;
+  }
+  
+  .radar-chart-container {
+    height: 150px;
+    padding: 8px;
+  }
+  
+  .radar-chart-container canvas {
+    max-width: 140px !important;
+    max-height: 140px !important;
+    width: 140px !important;
+    height: 140px !important;
+  }
+  
+  .modal-footer {
+    padding: 12px 16px;
+  }
+  
+  .modal-footer button {
+    padding: 10px 16px;
+    font-size: 14px;
   }
 }
 
