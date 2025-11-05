@@ -1,13 +1,12 @@
 import { ref, onMounted } from 'vue'
 
-const currentScheme = ref('scheme1-light')
+const currentScheme = ref('scheme1-dark')
 
 export function useColorScheme() {
+  // 只保留雪尽霜余主题
   const colorSchemes = [
-    { id: 'scheme1-light', name: '雪尽霜余（浅色）', primary: '#BA9B92' },
-    { id: 'scheme1-dark', name: '雪尽霜余（深色）', primary: '#D4B5AC' },
-    { id: 'scheme2-light', name: '芩江初雪（浅色）', primary: '#8BA995' },
-    { id: 'scheme2-dark', name: '芩江初雪（深色）', primary: '#A8C9A8' }
+    { id: 'scheme1-light', name: '雪尽霜余 · 浅色', primary: '#BA9B92' },
+    { id: 'scheme1-dark', name: '雪尽霜余 · 深色', primary: '#D4B5AC' }
   ]
 
   const setColorScheme = (schemeId) => {
@@ -15,22 +14,34 @@ export function useColorScheme() {
     localStorage.setItem('preferred_color_scheme', schemeId)
   }
 
+  // 切换深浅色模式
+  const toggleColorScheme = () => {
+    const newScheme = currentScheme.value === 'scheme1-dark' ? 'scheme1-light' : 'scheme1-dark'
+    setColorScheme(newScheme)
+  }
+
   const initColorScheme = () => {
     const saved = localStorage.getItem('preferred_color_scheme')
-    if (saved) {
+    if (saved && (saved === 'scheme1-dark' || saved === 'scheme1-light')) {
       currentScheme.value = saved
     } else {
-      // 自动跟随系统深色模式
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      currentScheme.value = isDark ? 'scheme1-dark' : 'scheme1-light'
+      // 默认使用深色模式
+      currentScheme.value = 'scheme1-dark'
+      // 保存默认设置
+      localStorage.setItem('preferred_color_scheme', 'scheme1-dark')
     }
   }
+
+  // 判断是否为深色模式
+  const isDark = () => currentScheme.value === 'scheme1-dark'
 
   return {
     currentScheme,
     colorSchemes,
     setColorScheme,
-    initColorScheme
+    toggleColorScheme,
+    initColorScheme,
+    isDark
   }
 }
 

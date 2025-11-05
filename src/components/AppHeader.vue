@@ -44,13 +44,28 @@
 
       <!-- 右侧：工具按钮 -->
       <div class="header-right">
-        <!-- 配色切换按钮 -->
-        <button 
-          @click="showColorPicker = !showColorPicker" 
-          class="icon-btn" 
-          title="切换配色"
+        <!-- 更换激活码按钮（已激活状态下显示） -->
+        <button
+          v-if="hasActivation"
+          @click="goToActivation"
+          class="icon-btn"
+          title="更换激活码"
         >
-          <span class="iconify" data-icon="mdi:palette" data-width="20" data-height="20"></span>
+          <span class="iconify" data-icon="mdi:key-plus" data-width="20" data-height="20"></span>
+        </button>
+
+        <!-- 主题切换按钮 -->
+        <button 
+          @click="toggleTheme" 
+          class="icon-btn" 
+          :title="isDark() ? '切换到浅色模式' : '切换到深色模式'"
+        >
+          <span 
+            class="iconify" 
+            :data-icon="isDark() ? 'mdi:weather-night' : 'mdi:white-balance-sunny'" 
+            data-width="20" 
+            data-height="20"
+          ></span>
         </button>
 
         <!-- 报告页：返回测评 -->
@@ -90,34 +105,6 @@
       </div>
     </div>
 
-    <!-- 配色选择器弹窗（Telelport到body，避免被Header影响定位） -->
-    <teleport to="body">
-      <transition name="fade">
-        <div v-if="showColorPicker" class="color-picker-modal" @click="showColorPicker = false">
-          <div class="color-picker-content" @click.stop>
-            <h3 class="picker-title">选择配色方案</h3>
-            <div class="color-schemes minimal">
-              <div
-                v-for="scheme in colorSchemes"
-                :key="scheme.id"
-                class="scheme-item minimal"
-                :class="{ active: currentScheme === scheme.id }"
-                @click="selectScheme(scheme.id)"
-              >
-                <div class="scheme-name">{{ scheme.name }}</div>
-                <div class="scheme-chip">
-                  <span class="surface" :class="scheme.id"></span>
-                  <span class="primary" :style="{ background: scheme.primary }"></span>
-                  <span v-if="currentScheme === scheme.id" class="check">
-                    <span class="iconify" data-icon="mdi:check" data-width="16" data-height="16"></span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </transition>
-    </teleport>
 
     <!-- 移动端菜单（Popover 下拉卡片） -->
     <teleport to="body">
@@ -136,11 +123,18 @@
               <span class="iconify" data-icon="mdi:chart-box" data-width="18" data-height="18"></span>
               <span>报告</span>
             </router-link>
+            <!-- 分隔线 -->
+            <div v-if="hasActivation" class="popover-divider"></div>
             <!-- 激活码状态（移动端） -->
             <div v-if="hasActivation && activationStatus" class="popover-item activation-status-mobile">
               <span class="iconify" data-icon="mdi:key-variant" data-width="18" data-height="18"></span>
               <span>激活码剩余：{{ activationStatus.daysLeft }}天 · 今日：{{ activationStatus.remainingToday }}/{{ activationStatus.dailyLimit }}</span>
             </div>
+            <!-- 更换激活码按钮（移动端） -->
+            <router-link v-if="hasActivation" to="/activation" class="popover-item popover-action" @click="showMobileMenu = false">
+              <span class="iconify" data-icon="mdi:key-plus" data-width="18" data-height="18"></span>
+              <span>更换激活码</span>
+            </router-link>
           </div>
         </div>
       </transition>
@@ -157,40 +151,44 @@ import { showShareModal } from '@/utils/shareCard'
 
 const route = useRoute()
 const router = useRouter()
-const { currentScheme, colorSchemes, setColorScheme } = useColorScheme()
+const { currentScheme, toggleColorScheme, isDark } = useColorScheme()
 
-const showColorPicker = ref(false)
 const showMobileMenu = ref(false)
 const activationStatus = ref(null)
 
 const currentPath = computed(() => route.path)
 
-const hasActivation = computed(() => {
-  return checkActivation()
-})
+// 注意：localStorage 变化不是响应式，这里用 ref 并在事件里手动刷新
+const hasActivation = ref(checkActivation())
 
-const hasReport = computed(() => {
-  return localStorage.getItem('test_report') !== null
-})
+// 使用 ref 而不是 computed，以便手动更新
+const hasReport = ref(localStorage.getItem('test_report') !== null)
 
 // 获取激活码状态
 const loadActivationStatus = async () => {
+  console.log('[AppHeader] loadActivationStatus 调用, hasActivation:', hasActivation.value)
   if (hasActivation.value) {
     try {
       activationStatus.value = await getActivationStatus()
+      console.log('[AppHeader] 激活状态已更新:', activationStatus.value)
     } catch (e) {
-      console.error('获取激活码状态失败:', e)
+      console.error('[AppHeader] 获取激活码状态失败:', e)
     }
+  } else {
+    console.log('[AppHeader] 未激活，跳过状态加载')
   }
 }
 
-const selectScheme = (schemeId) => {
-  setColorScheme(schemeId)
-  showColorPicker.value = false
+const toggleTheme = () => {
+  toggleColorScheme()
 }
 
 const goAssessment = () => {
   router.push('/assessment')
+}
+
+const goToActivation = () => {
+  router.push('/activation')
 }
 
 const openShareFromHeader = () => {
@@ -217,19 +215,46 @@ watch(showMobileMenu, (open) => {
   document.body.style.overflow = open ? 'hidden' : ''
 })
 
-// 监听路由变化，更新激活码状态
+// 监听路由变化，更新激活码状态和报告状态
 watch(() => route.path, () => {
+  hasActivation.value = checkActivation()
+  hasReport.value = localStorage.getItem('test_report') !== null
   loadActivationStatus()
 })
 
+// 🔧 监听自定义事件，在测评提交后刷新状态
+const handleActivationUpdate = () => {
+  console.log('🔄 [AppHeader] 收到激活状态更新通知，刷新状态...')
+  hasActivation.value = checkActivation()
+  hasReport.value = localStorage.getItem('test_report') !== null
+  loadActivationStatus()
+}
+
+// 🔧 定时刷新激活码状态（每30秒）
+let refreshTimer = null
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
+  window.addEventListener('activation-updated', handleActivationUpdate)
   loadActivationStatus()
+
+  // 每30秒自动刷新一次状态
+  refreshTimer = setInterval(() => {
+    hasActivation.value = checkActivation()
+    hasReport.value = localStorage.getItem('test_report') !== null
+    if (hasActivation.value) {
+      loadActivationStatus()
+    }
+  }, 30000)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('activation-updated', handleActivationUpdate)
   document.body.style.overflow = ''
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+  }
 })
 </script>
 
@@ -406,119 +431,6 @@ onBeforeUnmount(() => {
   transform: rotate(-45deg);
 }
 
-/* 配色选择器弹窗 */
-.color-picker-modal {
-  position: fixed;
-  inset: 0;
-  background: transparent;
-  z-index: 1000;
-}
-
-.color-picker-content {
-  position: fixed;
-  right: 12px;
-  top: calc(env(safe-area-inset-top, 0px) + 56px);
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px;
-  width: min(86vw, 320px);
-  max-height: 70vh;
-  overflow: auto;
-}
-
-.picker-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-title);
-  margin: 4px 4px 10px 4px;
-}
-
-.color-schemes {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-.color-schemes.minimal { grid-template-columns: 1fr; gap: 6px; }
-
-.scheme-item {
-  box-sizing: border-box;
-  padding: 14px;
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: var(--bg-section);
-}
-.scheme-item.minimal {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 10px;
-}
-
-.scheme-item:hover {
-  border-color: var(--primary);
-  transform: translateY(-2px);
-}
-
-.scheme-item.active {
-  border-color: var(--primary);
-  background: var(--bg-card);
-}
-
-.scheme-chip {
-  position: relative;
-  width: 84px;
-  height: 26px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--bg-section);
-  border: 1px solid var(--border);
-}
-.scheme-chip .surface {
-  position: absolute;
-  inset: 0;
-  border-radius: 8px;
-}
-.scheme-chip .primary {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 36%;
-}
-.scheme-chip .check {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-title);
-}
-
-.scheme-info {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.scheme-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-body);
-}
-
-.scheme-check {
-  color: var(--primary);
-}
-
-/* 预览 surface 背景色与深浅方案匹配 */
-.surface.scheme1-light { background: #FFFFFF; }
-.surface.scheme1-dark { background: #2A2624; }
-.surface.scheme2-light { background: #FFFFFF; }
-.surface.scheme2-dark { background: #252A25; }
-
 /* 移动端下拉菜单（Popover） */
 .mobile-overlay {
   position: fixed;
@@ -580,14 +492,19 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 
+/* 移动端菜单分隔线 */
+.popover-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
 /* 移动端激活码状态 */
 .activation-status-mobile {
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
-  padding-top: 12px;
   color: var(--text-secondary);
   font-size: 13px;
   cursor: default;
+  padding: 10px 16px;
 }
 
 .activation-status-mobile:hover {
@@ -597,6 +514,16 @@ onBeforeUnmount(() => {
 
 .activation-status-mobile .iconify {
   color: var(--primary);
+}
+
+/* 移动端操作按钮（更换激活码） */
+.popover-action {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.popover-action:hover {
+  background: rgba(var(--primary-rgb), 0.1);
 }
 
 /* 响应式 */
@@ -649,16 +576,6 @@ onBeforeUnmount(() => {
 }
 
 /* 动画 */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
 /* 遮罩淡入 */
 .overlay-fade-enter-active,
 .overlay-fade-leave-active {
@@ -666,11 +583,6 @@ onBeforeUnmount(() => {
 }
 .overlay-fade-enter-from,
 .overlay-fade-leave-to { opacity: 0; }
-
-@keyframes panel-in {
-  from { transform: translateX(16px); opacity: 0.8; }
-  to { transform: translateX(0); opacity: 1; }
-}
 
 @keyframes pop-in {
   from { transform: translateY(-6px); opacity: 0; }

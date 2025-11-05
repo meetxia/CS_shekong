@@ -134,7 +134,7 @@ function generateRadarCard(report) {
     
           <div class="card-body">
         <div class="radar-chart-container">
-          <canvas id="shareRadarChart" width="200" height="200"></canvas>
+          <canvas id="shareRadarChart" width="260" height="260"></canvas>
         </div>
       
       <div class="dimension-insight">
@@ -319,7 +319,7 @@ export function showShareModal(report) {
     <div class="modal-overlay"></div>
     <div class="modal-content">
       <div class="modal-header">
-        <h3>选择要分享的卡片</h3>
+        <h3>分享测评结果</h3>
         <button class="close-btn">×</button>
       </div>
       
@@ -330,17 +330,9 @@ export function showShareModal(report) {
               <span class="theme-selector-label">背景:</span>
             </div>
             <div class="theme-selector-row">
-              <div class="theme-option active" data-theme="light" title="浅色"></div>
-              <div class="theme-option" data-theme="warm" title="暖色"></div>
-              <div class="theme-option" data-theme="cool" title="冷色"></div>
-              <div class="theme-option" data-theme="dark" title="深色"></div>
+              <div class="theme-option active" data-theme="light" title="白色"></div>
+              <div class="theme-option" data-theme="dark" title="黑色"></div>
             </div>
-          </div>
-          
-          <div class="card-tabs">
-            <button class="tab-btn active" data-card="type">类型卡</button>
-            <button class="tab-btn" data-card="score">总分卡</button>
-            <button class="tab-btn" data-card="radar">雷达图</button>
           </div>
         </div>
         
@@ -360,11 +352,11 @@ export function showShareModal(report) {
   
   document.body.appendChild(modal);
   
-  // 初始化显示类型卡
+  // 初始化显示分数卡（直接显示分数卡，不再默认显示类型卡）
   const preview = modal.querySelector('#cardPreview');
-  const typeCard = generateTypeCard(report);
-  typeCard.setAttribute('data-theme', 'light');
-  preview.appendChild(typeCard);
+  const scoreCard = generateScoreCard(report);
+  scoreCard.setAttribute('data-theme', 'light');
+  preview.appendChild(scoreCard);
   
   // 当前选中的主题
   let currentTheme = 'light';
@@ -379,29 +371,6 @@ export function showShareModal(report) {
       const card = preview.querySelector('.share-card');
       if (card) {
         card.setAttribute('data-theme', currentTheme);
-      }
-    });
-  });
-  
-  // 切换卡片类型
-  modal.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      modal.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      e.target.classList.add('active');
-      
-      const cardType = e.target.dataset.card;
-      preview.innerHTML = '';
-      const card = generateShareCard(report, cardType);
-      // 应用当前主题
-      card.setAttribute('data-theme', currentTheme);
-      preview.appendChild(card);
-      
-      // 如果是雷达图，需要重新渲染图表
-      if (cardType === 'radar') {
-        // 等待DOM更新后再渲染
-        setTimeout(() => {
-          renderRadarForShare(report, card, currentTheme);
-        }, 100);
       }
     });
   });
@@ -421,8 +390,7 @@ export function showShareModal(report) {
       if (imageUrl) {
         // 生成文件名
         const timestamp = new Date().getTime();
-        const cardType = modal.querySelector('.tab-btn.active').dataset.card;
-        const filename = `社恐测评-${cardType}-${timestamp}.png`;
+        const filename = `社恐测评-分数卡-${timestamp}.png`;
         
         downloadImage(imageUrl, filename);
         
@@ -467,18 +435,18 @@ function renderRadarForShare(report, cardElement, theme = 'light') {
       const chartInstance = echarts.init(canvas, null, {
       renderer: 'canvas',
       devicePixelRatio: 2,
-      width: 200,
-      height: 200
+      width: 260,
+      height: 260
     });
     
     // 根据主题设置颜色
     const themeColors = {
       light: {
-        gridColor: 'rgba(212,165,116,0.25)',
-        lineColor: 'rgba(255,77,79,0.85)',
-        areaColor: 'rgba(255,160,122,0.25)',
-        labelColor: '#2A2A2A',
-        areaGradient: ['rgba(255,160,122,0.04)', 'rgba(255,180,140,0.08)']
+        gridColor: 'rgba(186,155,146,0.35)',
+        lineColor: 'rgba(186,155,146,0.95)',
+        areaColor: 'rgba(186,155,146,0.2)',
+        labelColor: '#1C1614',
+        areaGradient: ['rgba(186,155,146,0.04)', 'rgba(186,155,146,0.07)']
       },
       warm: {
         gridColor: 'rgba(232,155,155,0.3)',

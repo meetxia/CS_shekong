@@ -1,12 +1,38 @@
 <template>
   <div class="assessment-page">
     <!-- 开发者调试面板 -->
-    <div v-if="isDev" class="dev-panel">
-      <div class="dev-panel-header">
+    <div 
+      v-if="isDev && devPanelVisible" 
+      class="dev-panel"
+      :class="{ minimized: devPanelMinimized, dragging: devPanelDragging }"
+      :style="{ left: `${devPanelPosition.x}px`, top: `${devPanelPosition.y}px` }"
+    >
+      <div 
+        class="dev-panel-header"
+        @mousedown="startDevPanelDrag"
+        @touchstart="startDevPanelDrag"
+      >
+        <span class="iconify drag-handle" data-icon="mdi:drag" data-width="16"></span>
         <span class="iconify" data-icon="mdi:bug" data-width="16"></span>
-        开发者工具
+        <span class="dev-panel-title">开发者工具</span>
+        <div class="dev-panel-controls">
+          <button 
+            @click.stop="toggleDevPanelMinimize" 
+            class="dev-control-btn"
+            :title="devPanelMinimized ? '展开' : '最小化'"
+          >
+            <span class="iconify" :data-icon="devPanelMinimized ? 'mdi:window-maximize' : 'mdi:window-minimize'" data-width="14"></span>
+          </button>
+          <button 
+            @click.stop="toggleDevPanel" 
+            class="dev-control-btn"
+            title="隐藏"
+          >
+            <span class="iconify" data-icon="mdi:close" data-width="14"></span>
+          </button>
+        </div>
       </div>
-      <div class="dev-panel-actions">
+      <div v-show="!devPanelMinimized" class="dev-panel-actions">
         <button @click="clearAllAnswers" class="dev-btn dev-btn-warning">
           <span class="iconify" data-icon="mdi:delete-sweep" data-width="16"></span>
           清空所有答案
@@ -29,6 +55,16 @@
         </button>
       </div>
     </div>
+    
+    <!-- 开发面板快捷打开按钮（当面板隐藏时显示） -->
+    <button 
+      v-if="isDev && !devPanelVisible" 
+      @click="toggleDevPanel"
+      class="dev-panel-toggle-btn"
+      title="打开开发者工具"
+    >
+      <span class="iconify" data-icon="mdi:bug" data-width="20"></span>
+    </button>
 
     <!-- 基础信息收集页 -->
     <div v-if="showBasicInfoPage" class="basic-info-page">
@@ -204,6 +240,7 @@ const questions = ref([])
 // 🤖 AI预生成缓存
 let aiPreGeneratedReport = null
 let isAiPreGenerating = false
+let aiPreGenerationTriggered = false // 🔒 标记是否已经触发过AI预生成（防止重复触发）
 
 const showBasicInfoPage = ref(true)
 const basicInfo = reactive({})
@@ -224,6 +261,15 @@ const progressToastShown = ref({
 
 // 开发者模式（检测是否在开发环境）
 const isDev = ref(import.meta.env.DEV)
+
+// 开发面板状态
+const devPanelVisible = ref(true) // 是否显示开发面板
+const devPanelMinimized = ref(false) // 是否最小化
+const devPanelPosition = reactive({
+  x: window.innerWidth - 220, // 默认靠右
+  y: 10 // 默认靠上
+})
+const devPanelDragging = ref(false)
 
 // 监听窗口尺寸，切换移动端/桌面端展示
 const handleResize = () => {
@@ -318,6 +364,12 @@ const startAssessment = () => {
     return
   }
   
+  // 🤖 开始新测评时，清空旧的AI预生成缓存和标记
+  aiPreGeneratedReport = null
+  isAiPreGenerating = false
+  aiPreGenerationTriggered = false
+  console.log('🆕 [开始测评] 已清除旧的AI预生成缓存和触发标记')
+  
   showBasicInfoPage.value = false
   showToast('开始测评，共35题', 2000, 'success')
 }
@@ -363,6 +415,58 @@ const loadBasicInfo = () => {
   }
 }
 
+// ========== 开发面板控制函数 ==========
+
+// 切换开发面板显示/隐藏
+const toggleDevPanel = () => {
+  devPanelVisible.value = !devPanelVisible.value
+}
+
+// 切换开发面板最小化
+const toggleDevPanelMinimize = () => {
+  devPanelMinimized.value = !devPanelMinimized.value
+}
+
+// 开发面板拖动开始
+const startDevPanelDrag = (event) => {
+  event.preventDefault()
+  devPanelDragging.value = true
+  
+  const startX = event.clientX || event.touches?.[0]?.clientX || 0
+  const startY = event.clientY || event.touches?.[0]?.clientY || 0
+  const startPosX = devPanelPosition.x
+  const startPosY = devPanelPosition.y
+  
+  const handleMove = (e) => {
+    e.preventDefault()
+    const currentX = e.clientX || e.touches?.[0]?.clientX || 0
+    const currentY = e.clientY || e.touches?.[0]?.clientY || 0
+    
+    const deltaX = currentX - startX
+    const deltaY = currentY - startY
+    
+    // 限制在窗口范围内
+    const maxX = window.innerWidth - 200
+    const maxY = window.innerHeight - 100
+    
+    devPanelPosition.x = Math.max(0, Math.min(maxX, startPosX + deltaX))
+    devPanelPosition.y = Math.max(0, Math.min(maxY, startPosY + deltaY))
+  }
+  
+  const handleEnd = () => {
+    devPanelDragging.value = false
+    document.removeEventListener('mousemove', handleMove)
+    document.removeEventListener('mouseup', handleEnd)
+    document.removeEventListener('touchmove', handleMove)
+    document.removeEventListener('touchend', handleEnd)
+  }
+  
+  document.addEventListener('mousemove', handleMove)
+  document.addEventListener('mouseup', handleEnd)
+  document.addEventListener('touchmove', handleMove)
+  document.addEventListener('touchend', handleEnd)
+}
+
 // ========== 开发者工具函数 ==========
 
 // 清空所有答案
@@ -376,6 +480,12 @@ const clearAllAnswers = () => {
   Object.keys(basicInfo).forEach(key => {
     delete basicInfo[key]
   })
+  
+  // 🤖 清空AI预生成缓存和标记
+  aiPreGeneratedReport = null
+  isAiPreGenerating = false
+  aiPreGenerationTriggered = false
+  console.log('🧹 [清空数据] 已清除AI预生成缓存和触发标记')
   
   // 清空本地存储
   localStorage.removeItem('test_answers')
@@ -394,6 +504,11 @@ const clearAllAnswers = () => {
 
 // 随机填充答案
 const fillRandomAnswers = () => {
+  // 🤖 先清空AI预生成缓存和标记
+  aiPreGeneratedReport = null
+  isAiPreGenerating = false
+  aiPreGenerationTriggered = false
+  
   // 填充基础信息
   basicInfoQuestions.forEach(q => {
     const randomOption = q.options[Math.floor(Math.random() * q.options.length)]
@@ -411,6 +526,7 @@ const fillRandomAnswers = () => {
   }
   saveAnswers()
   showToast('已随机填充所有答案', 1500, 'success')
+  console.log('🧹 [随机填充] 已清除AI预生成缓存')
 }
 
 // 跳转到指定题目
@@ -419,11 +535,21 @@ const jumpToQuestion = (questionNum) => {
     showBasicInfoPage.value = false
     currentQuestion.value = questionNum
     showToast(`已跳转到第${questionNum}题`, 1000, 'info')
+    
+    // 🤖 开发者工具跳题后也检查是否需要触发AI预生成
+    setTimeout(() => {
+      checkAndTriggerAIPreGeneration()
+    }, 100)
   }
 }
 
 // 重置到基础信息页
 const resetToBasicInfoPage = () => {
+  // 🤖 清空AI预生成缓存和标记
+  aiPreGeneratedReport = null
+  isAiPreGenerating = false
+  aiPreGenerationTriggered = false
+  
   // 重置页面状态
   showBasicInfoPage.value = true
   currentQuestion.value = 1
@@ -432,6 +558,7 @@ const resetToBasicInfoPage = () => {
   // 强制更新视图
   nextTick(() => {
     showToast('已重置到基础信息页', 1500, 'success')
+    console.log('🧹 [重置页面] 已清除AI预生成缓存和触发标记')
   })
 }
 
@@ -454,10 +581,8 @@ const selectOption = (optionId, score) => {
   nextTick(() => {
     saveAnswers()
 
-    // 🤖 当答到第33题时（倒数第3题），提前开始AI生成，提升用户体验
-    if (currentQuestion.value === 33 && !isAiPreGenerating) {
-      preGenerateAIReport()
-    }
+    // 🤖 智能检查是否应该触发AI预生成
+    checkAndTriggerAIPreGeneration()
 
     // 自动跳转到下一题（延迟0.6秒）
     setTimeout(() => {
@@ -498,6 +623,9 @@ const nextQuestion = (isNormalFlow = false) => {
         progressToastShown.value.q30 = true
       }
     }
+    
+    // 🤖 在切换到第34题或第35题时，也检查是否需要触发AI预生成
+    checkAndTriggerAIPreGeneration()
   }
 }
 
@@ -521,6 +649,11 @@ const handleProgressClick = (event) => {
   const questionNum = calculateQuestionFromPosition(event)
   currentQuestion.value = questionNum
   showToast(`跳转到第${questionNum}题`, 1500, 'info')
+  
+  // 🤖 跳题后也检查是否需要触发AI预生成
+  setTimeout(() => {
+    checkAndTriggerAIPreGeneration()
+  }, 100)
 }
 
 // 开始拖动
@@ -540,6 +673,11 @@ const handleProgressDragStart = (event) => {
     document.removeEventListener('mouseup', handleDragEnd)
     document.removeEventListener('touchmove', handleDrag)
     document.removeEventListener('touchend', handleDragEnd)
+    
+    // 🤖 拖动结束后也检查是否需要触发AI预生成
+    setTimeout(() => {
+      checkAndTriggerAIPreGeneration()
+    }, 100)
   }
   
   document.addEventListener('mousemove', handleDrag)
@@ -580,12 +718,69 @@ const loadAnswers = () => {
   }
 }
 
+// 🤖 检查并触发AI预生成（智能判断时机）
+const checkAndTriggerAIPreGeneration = () => {
+  // 🔒 【重要】如果已经触发过，直接跳过（防止用户退回题目时重复触发）
+  if (aiPreGenerationTriggered) {
+    return
+  }
+  
+  // 如果已经在生成或已经生成过，跳过
+  if (isAiPreGenerating || aiPreGeneratedReport) {
+    return
+  }
+  
+  const answeredCount = Object.keys(answers).length
+  
+  // 🎯 严格条件：必须同时满足以下条件才触发
+  // 1. 已答题数 >= 33 题
+  // 2. 当前在第 33-35 题之间（确保用户快要答完了）
+  // 3. 前 25 题必须已经全部回答（确保是正常流程，不是残留数据）
+  const isInFinalStage = currentQuestion.value >= 33 && currentQuestion.value <= 35
+  const hasEnoughAnswers = answeredCount >= 33
+  
+  // 检查前25题是否都已回答（验证是正常答题流程）
+  let first25Answered = true
+  for (let i = 1; i <= 25; i++) {
+    if (!answers[i]) {
+      first25Answered = false
+      break
+    }
+  }
+  
+  const shouldTrigger = isInFinalStage && hasEnoughAnswers && first25Answered
+  
+  if (shouldTrigger) {
+    console.log(`🎯 [触发检查] ✅ 满足所有条件，触发AI预生成`)
+    console.log(`   - 已答题数: ${answeredCount}/35`)
+    console.log(`   - 当前题号: ${currentQuestion.value}`)
+    console.log(`   - 前25题完成: ${first25Answered}`)
+    
+    // 🔒 标记已触发，防止重复触发
+    aiPreGenerationTriggered = true
+    console.log(`🔒 [触发检查] 已设置触发标记，后续不会再次触发`)
+    
+    preGenerateAIReport()
+  } else if (answeredCount >= 33 && !shouldTrigger) {
+    console.log(`⏸️  [触发检查] 已答${answeredCount}题但不触发 - 当前第${currentQuestion.value}题，前25题完成:${first25Answered}`)
+  }
+}
+
 // 🤖 预生成AI报告（在用户答到第33题时触发）
 const preGenerateAIReport = async () => {
-  if (isAiPreGenerating) return
+  if (isAiPreGenerating) {
+    console.log('⏳ [AI预生成] 已在进行中，跳过')
+    return
+  }
   
-  console.log('🚀 提前开始AI报告生成...')
+  console.log('═══════════════════════════════════════════')
+  console.log('🚀 [AI预生成] 提前开始AI报告生成！')
+  console.log(`📊 [AI预生成] 当前已答题: ${Object.keys(answers).length}/35`)
+  console.log(`👤 [AI预生成] 用户信息: 年龄=${basicInfo.age}, 性别=${basicInfo.gender}`)
+  console.log('═══════════════════════════════════════════')
+  
   isAiPreGenerating = true
+  const startTime = Date.now()
   
   try {
     // 转换答案格式为 { questionId: score }
@@ -594,11 +789,28 @@ const preGenerateAIReport = async () => {
       answersForScoring[qId] = answerObj.score
     })
     
+    console.log(`📝 [AI预生成] 答案数据已准备好: ${Object.keys(answersForScoring).length} 个答案`)
+    
     // 提前生成报告
     aiPreGeneratedReport = await generateReport(answersForScoring, basicInfo)
-    console.log('✅ AI报告预生成完成！')
+    
+    const duration = Date.now() - startTime
+    console.log('═══════════════════════════════════════════')
+    console.log(`✅ [AI预生成] AI报告预生成完成！(耗时: ${duration}ms)`)
+    console.log(`📝 [AI预生成] 生成的类型: ${aiPreGeneratedReport?.type?.name}`)
+    console.log(`📊 [AI预生成] 总分: ${aiPreGeneratedReport?.totalScore}/100`)
+    console.log(`🏷️  [AI预生成] 等级: ${aiPreGeneratedReport?.level?.name}`)
+    console.log(`🤖 [AI预生成] AI生成: ${aiPreGeneratedReport?.aiGenerated ? '是' : '否（使用本地规则）'}`)
+    console.log('═══════════════════════════════════════════')
+    
+    // 用户友好提示
+    showToast('✨ 专属报告已准备好！', 1500, 'success')
   } catch (error) {
-    console.error('❌ AI预生成失败:', error)
+    const duration = Date.now() - startTime
+    console.log('═══════════════════════════════════════════')
+    console.error(`❌ [AI预生成] AI预生成失败 (耗时: ${duration}ms)`)
+    console.error(`📄 [AI预生成] 错误信息:`, error)
+    console.log('═══════════════════════════════════════════')
     aiPreGeneratedReport = null
   } finally {
     isAiPreGenerating = false
@@ -624,28 +836,86 @@ const submitAssessment = async () => {
   submitting.value = true
   
   try {
-    let report
+    // 🔒 提交前再次检查激活状态（防止答题期间超限）
+    const statusBeforeSubmit = await getActivationStatus()
+    console.log('[提交测评] 提交前状态检查:', statusBeforeSubmit)
     
+    if (statusBeforeSubmit.expired) {
+      showToast('激活码已过期，无法提交', 2500, 'error')
+      submitting.value = false
+      setTimeout(() => router.push('/activation'), 1500)
+      return
+    }
+    
+    if (statusBeforeSubmit.remainingToday <= 0) {
+      showToast('今日测评次数已用完，无法提交', 2500, 'warning')
+      submitting.value = false
+      setTimeout(() => router.push('/'), 2000)
+      return
+    }
+    
+    console.log(`✅ [提交测评] 状态检查通过！今日剩余 ${statusBeforeSubmit.remainingToday} 次`)
+    
+    let report
+
     // 🎯 如果有预生成的报告，直接使用
     if (aiPreGeneratedReport) {
-      console.log('⚡ 使用预生成的专属报告，秒开！')
+      console.log('═══════════════════════════════════════════')
+      console.log('⚡ [提交测评] 使用预生成的专属报告，秒开！')
+      console.log('═══════════════════════════════════════════')
       showToast('正在生成专属分析报告...', 800, 'info')
       await new Promise(resolve => setTimeout(resolve, 800)) // 短暂延迟，给用户反馈
       report = aiPreGeneratedReport
       aiPreGeneratedReport = null // 使用后清空
+    } else if (isAiPreGenerating) {
+      // 🔄 如果预生成正在进行中，等待它完成
+      console.log('═══════════════════════════════════════════')
+      console.log('⏳ [提交测评] AI预生成正在进行中，等待完成...')
+      console.log('═══════════════════════════════════════════')
+      showToast('正在生成专属分析报告...', 2000, 'info')
+
+      // 等待预生成完成（最多等待30秒）
+      const maxWaitTime = 30000 // 30秒
+      const startWaitTime = Date.now()
+
+      while (isAiPreGenerating && (Date.now() - startWaitTime) < maxWaitTime) {
+        await new Promise(resolve => setTimeout(resolve, 100)) // 每100ms检查一次
+      }
+
+      if (aiPreGeneratedReport) {
+        console.log('✅ [提交测评] 预生成完成，使用预生成报告！')
+        report = aiPreGeneratedReport
+        aiPreGeneratedReport = null
+      } else {
+        // 预生成失败或超时，实时生成
+        console.log('⚠️ [提交测评] 预生成失败或超时，改为实时生成')
+        const answersForScoring = {}
+        Object.entries(answers).forEach(([qId, answerObj]) => {
+          answersForScoring[qId] = answerObj.score
+        })
+        report = await generateReport(answersForScoring, basicInfo)
+      }
     } else {
       // 没有预生成，正常生成
-      console.log('⏳ 实时生成专属报告...')
+      console.log('═══════════════════════════════════════════')
+      console.log('⏳ [提交测评] 实时生成专属报告...')
+      console.log('💡 [提交测评] 提示：为了更快体验，AI会在第33题时预生成')
+      console.log('═══════════════════════════════════════════')
       showToast('正在生成专属分析报告...', 2000, 'info')
-      
+
+      const startTime = Date.now()
+
       // 转换答案格式为 { questionId: score }
       const answersForScoring = {}
       Object.entries(answers).forEach(([qId, answerObj]) => {
         answersForScoring[qId] = answerObj.score
       })
-      
+
       // 生成报告（传入答案和基础信息）- 现在是异步的
       report = await generateReport(answersForScoring, basicInfo)
+
+      const duration = Date.now() - startTime
+      console.log(`✅ [提交测评] 报告生成完成 (耗时: ${duration}ms)`)
     }
     
     // 检查效度
@@ -654,45 +924,65 @@ const submitAssessment = async () => {
       submitting.value = false
       return
     }
-    
-    // 保存报告
-    localStorage.setItem('test_report', JSON.stringify(report))
 
-    // 写入本地历史记录（仅保存在当前设备浏览器中）
-    try {
-      const raw = localStorage.getItem('test_history')
-      const history = raw ? JSON.parse(raw) : []
-      history.unshift({
-        date: new Date().toISOString(),
-        totalScore: report.totalScore,
-        levelName: report.level.name,
-        typeName: report.type.name
-      })
-      // 只保留最近20条，避免无限增长
-      localStorage.setItem('test_history', JSON.stringify(history.slice(0, 20)))
-    } catch (e) {
-      console.warn('保存历史记录失败', e)
-    }
-
-    // 记录一次使用并提示剩余次数/有效期
+    // 🔧 记录一次使用（扣除次数）- 先记录，成功后再保存报告
+    console.log('📊 [提交测评] 开始记录使用次数...')
     const rec = await recordOneUsage()
+    console.log('📊 [提交测评] 记录结果:', rec)
+
+    // 🔧 触发自定义事件，通知导航栏刷新激活码状态
+    window.dispatchEvent(new Event('activation-updated'))
+    console.log('📢 [提交测评] 已触发激活状态更新事件')
+
     if (rec && rec.recorded) {
+      // ✅ 记录成功，保存报告并允许查看
+
+      // 保存报告到 localStorage
+      localStorage.setItem('test_report', JSON.stringify(report))
+
+      // 写入本地历史记录（仅保存在当前设备浏览器中）
+      try {
+        const raw = localStorage.getItem('test_history')
+        const history = raw ? JSON.parse(raw) : []
+        history.unshift({
+          date: new Date().toISOString(),
+          totalScore: report.totalScore,
+          levelName: report.level.name,
+          typeName: report.type.name
+        })
+        // 只保留最近20条，避免无限增长
+        localStorage.setItem('test_history', JSON.stringify(history.slice(0, 20)))
+      } catch (e) {
+        console.warn('保存历史记录失败', e)
+      }
+
       showToast(`测试完成！今日剩余${rec.remainingToday}次 · 剩余${rec.daysLeft}天`, 2200, 'success')
+
+      // 跳转到报告页
+      setTimeout(() => {
+        router.push('/report')
+      }, 1500)
     } else {
+      // ❌ 记录失败，不保存报告，不允许查看新报告
+      submitting.value = false
+
+      // 检查失败原因
       const s = await getActivationStatus()
       if (s.expired) {
-        showToast('激活码已过期，完成本次后无法继续使用', 2500, 'warning')
+        showToast('激活码已过期，无法完成测评', 2500, 'error')
+        setTimeout(() => router.push('/activation'), 2000)
       } else if (s.remainingToday === 0) {
-        showToast('今日3次已用完，明天0点自动恢复', 2200, 'warning')
+        showToast('今日测评次数已用完（3次/天），明天0点自动恢复', 2500, 'warning')
+        setTimeout(() => router.push('/'), 2000)
       } else {
-        showToast('测评完成！', 1500, 'success')
+        showToast('记录使用失败，请稍后重试', 2000, 'error')
+        setTimeout(() => router.push('/'), 2000)
       }
+
+      // 注意：这里不删除旧报告，保留用户之前的测评结果
+      console.log('⚠️ [提交测评] 记录失败，不保存新报告，但保留旧报告（如果有）')
+      return
     }
-    
-    // 跳转到报告页
-    setTimeout(() => {
-      router.push('/report')
-    }, 1500)
   } catch (error) {
     console.error('生成报告失败:', error)
     showToast('生成报告失败，请重试', 2000, 'error')
@@ -701,7 +991,31 @@ const submitAssessment = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 🔒 【重要】进入答题页面前，先检查激活状态和每日限制
+  const activationStatus = await getActivationStatus()
+  console.log('[进入答题页] 激活状态检查:', activationStatus)
+  
+  // 检查激活码是否过期
+  if (activationStatus.expired) {
+    showToast('激活码已过期，请重新激活', 2500, 'error')
+    setTimeout(() => {
+      router.push('/activation')
+    }, 1500)
+    return
+  }
+  
+  // 检查今日剩余次数
+  if (activationStatus.remainingToday <= 0) {
+    showToast('今日测评次数已用完（3次/天），明天0点自动恢复', 2500, 'warning')
+    setTimeout(() => {
+      router.push('/')
+    }, 2000)
+    return
+  }
+  
+  console.log(`✅ [进入答题页] 检查通过！今日剩余 ${activationStatus.remainingToday} 次，有效期剩余 ${activationStatus.daysLeft} 天`)
+  
   // 🎲 生成随机题目（从60题库中随机抽取35题+2题固定效度题）
   questions.value = getRandomQuestions()
   console.log('✨ 已生成随机题目，本次测评共', questions.value.length, '题')
@@ -915,16 +1229,26 @@ onMounted(() => {
 /* ========== 开发者调试面板 ========== */
 .dev-panel {
   position: fixed;
-  top: 10px;
-  right: 10px;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 12px;
-  padding: 12px;
+  padding: 0;
   z-index: 9999;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   min-width: 200px;
+  max-width: 280px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dev-panel.dragging {
+  cursor: move;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  transform: scale(1.02);
+}
+
+.dev-panel.minimized {
+  min-width: auto;
 }
 
 .dev-panel-header {
@@ -934,9 +1258,61 @@ onMounted(() => {
   color: #ffd700;
   font-size: 12px;
   font-weight: 600;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
+  padding: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px 12px 0 0;
+}
+
+.dev-panel-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dev-panel-header .drag-handle {
+  color: rgba(255, 255, 255, 0.3);
+  cursor: move;
+}
+
+.dev-panel-header:hover .drag-handle {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dev-panel-title {
+  flex: 1;
+}
+
+.dev-panel-controls {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.dev-control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.dev-control-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dev-control-btn:active {
+  transform: scale(0.95);
 }
 
 .dev-panel-actions {

@@ -8,7 +8,7 @@
 npm run dev
 ```
 
-服务器会在 `http://localhost:5173` 启动（或其他端口）
+服务器会在 `http://localhost:3000` 启动（或其他端口）
 
 ### 2. 开始测评流程
 

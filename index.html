@@ -7,6 +7,14 @@
   <title>社恐程度专业测评</title>
   <!-- Iconify 图标库 CDN -->
   <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+  <!-- 初始化主题：在 Vue 加载前就设置深色模式，避免闪烁 -->
+  <script>
+    (function() {
+      // 获取保存的主题，如果没有则使用深色模式
+      const savedTheme = localStorage.getItem('preferred_color_scheme') || 'scheme1-dark';
+      document.body.className = savedTheme;
+    })();
+  </script>
 </head>
 <body>
   <div id="app"></div>

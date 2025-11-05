@@ -81,7 +81,7 @@
 .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 
 .modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,0.4); }
-.modal-body { width: 560px; max-width: 92vw; background: var(--bg-card); border-radius: var(--admin-radius); box-shadow: var(--admin-shadow); }
+.modal-body { height: 70%; max-width: 92vw; background: var(--bg-card); border-radius: var(--admin-radius); box-shadow: var(--admin-shadow); }
 .form { display: grid; gap: 8px; }
 .form label { font-size: 12px; color: var(--text-secondary); }
 .error { color: var(--error); font-size: 12px; }

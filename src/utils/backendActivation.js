@@ -45,6 +45,24 @@ export async function recordUsage(recordId) {
   }
 }
 
+/**
+ * 获取激活状态（当前设备）
+ */
+export async function fetchActivationStatus(code, deviceId) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/activation/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, deviceId })
+    })
+    const result = await response.json()
+    return result
+  } catch (error) {
+    console.error('获取激活状态失败:', error)
+    return { success: false, error: error.message }
+  }
+}
+
 // ============================================
 // 管理端API
 // ============================================

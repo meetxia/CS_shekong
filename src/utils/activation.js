@@ -8,7 +8,7 @@
  */
 
 import { supabase, getDeviceId } from './supabaseClient'
-import { verifyActivationCode as verifyWithBackend, recordUsage } from './backendActivation'
+import { verifyActivationCode as verifyWithBackend, recordUsage, fetchActivationStatus } from './backendActivation'
 
 // 检查是否启用本地后端
 const USE_LOCAL_BACKEND = true // 优先使用本地后端
@@ -87,8 +87,13 @@ export async function verifyActivationCode(code) {
           }
         }
       } else {
-        // 验证失败，返回错误信息
-        return parseBackendError(result.error || '验证失败')
+        // 验证失败，返回错误信息（传入额外数据，如剩余天数）
+        return parseBackendError(result.error || '验证失败', {
+          daysLeft: result.daysLeft,
+          remainingToday: result.remainingToday,
+          dailyLimit: result.dailyLimit,
+          isActivated: result.isActivated
+        })
       }
     } catch (err) {
       console.error('激活码验证异常（本地后端）:', err)
@@ -203,13 +208,14 @@ function saveActivationFromBackend(code, backendData) {
     recordId: backendData.recordId, // 保存记录 ID，用于后续更新
     daysLeft: daysLeft,
     remainingToday: remainingToday,
+    syncedDate: todayStr(),
     usageCount: backendData.usageCount || 0
   }
   localStorage.setItem('activation_usage', JSON.stringify(usage))
 }
 
 // 解析后端错误信息，返回友好提示
-function parseBackendError(errorMsg) {
+function parseBackendError(errorMsg, extraData = {}) {
   if (!errorMsg) {
     return {
       valid: false,
@@ -218,9 +224,9 @@ function parseBackendError(errorMsg) {
       tip: '如果问题持续，请联系客服'
     }
   }
-  
+
   const msg = errorMsg.toLowerCase()
-  
+
   // 激活码不存在
   if (msg.includes('不存在') || msg.includes('not found') || msg.includes('不存在')) {
     return {
@@ -230,7 +236,7 @@ function parseBackendError(errorMsg) {
       tip: '请确认激活码是否输入正确，或联系客服获取激活码'
     }
   }
-  
+
   // 激活码已失效/被撤销
   if (msg.includes('已失效') || msg.includes('revoked') || msg.includes('已撤销')) {
     return {
@@ -240,38 +246,75 @@ function parseBackendError(errorMsg) {
       tip: '请联系客服了解详情或获取新的激活码'
     }
   }
-  
-  // 激活码已过期
+
+  // 激活码已过期（7天有效期已结束）
   if (msg.includes('已过期') || msg.includes('expired') || msg.includes('过期')) {
     return {
       valid: false,
       error: 'CODE_EXPIRED',
       message: '激活码已过期，有效期已结束',
-      tip: '激活码有效期为 7 天，请联系客服获取新的激活码'
+      tip: '激活码有效期为 7 天，请联系客服获取新的激活码',
+      icon: '⏰'
     }
   }
-  
-  // 使用次数已达上限（总次数）
+
+  // ⚠️ 重要：今日使用次数的判断必须在总次数判断之前，因为错误信息可能包含"使用次数已达上限"
+  // 今日使用次数已达上限（每天 3 次）
+  if (msg.includes('今日使用次数') || msg.includes('daily limit') || msg.includes('今日次数')) {
+    // 从 extraData 中获取剩余天数
+    const daysLeft = extraData.daysLeft !== undefined ? extraData.daysLeft : null
+
+    let message = '今日测评次数已用完，明天再来吧～'
+    let tip = '每天可测评 3 次，明天 00:00 自动恢复'
+    let icon = '😊'
+
+    // 根据剩余天数显示不同的提示
+    if (daysLeft !== null) {
+      if (daysLeft === 0) {
+        // 今天是最后一天，但今日次数已用完
+        message = '今日测评次数已用完，激活码今天到期'
+        tip = '该激活码今天到期，明天将无法使用。如需继续测评，请联系客服获取新码'
+        icon = '⏰'
+      } else if (daysLeft === 1) {
+        // 还剩 1 天
+        message = '今日测评次数已用完，明天再来吧～'
+        tip = `激活码还剩 1 天有效期，明天 00:00 恢复 3 次测评机会`
+        icon = '😊'
+      } else if (daysLeft <= 3) {
+        // 还剩 2-3 天
+        message = '今日测评次数已用完，明天再来吧～'
+        tip = `激活码还剩 ${daysLeft} 天有效期，明天 00:00 恢复 3 次测评机会`
+        icon = '😊'
+      } else {
+        // 还剩 4-7 天
+        message = '今日测评次数已用完，明天再来吧～'
+        tip = `激活码还剩 ${daysLeft} 天有效期，每天可测评 3 次`
+        icon = '😊'
+      }
+    }
+
+    return {
+      valid: false,
+      error: 'DAILY_LIMIT_REACHED',
+      message,
+      tip,
+      icon,
+      daysLeft
+    }
+  }
+
+  // 使用次数已达上限（总次数 21 次）
+  // ⚠️ 这个判断必须在"今日使用次数"判断之后，避免误判
   if (msg.includes('使用次数已达上限') || msg.includes('max uses') || msg.includes('次数已达上限')) {
     return {
       valid: false,
       error: 'MAX_USES_REACHED',
-      message: '该激活码使用次数已用完',
-      tip: '每个激活码最多可使用 21 次（7天×3次/天），请联系客服获取新码'
+      message: '该激活码总使用次数已用完',
+      tip: '每个激活码最多可使用 21 次（7天×3次/天），请联系客服获取新码',
+      icon: '🔒'
     }
   }
-  
-  // 今日使用次数已达上限
-  if (msg.includes('今日使用次数') || msg.includes('daily limit') || msg.includes('今日次数')) {
-    return {
-      valid: false,
-      error: 'DAILY_LIMIT_REACHED',
-      message: '今日测评次数已用完，明天再来吧～',
-      tip: '每天可测评 3 次，明天 00:00 自动恢复',
-      icon: '😊'
-    }
-  }
-  
+
   // 激活码状态异常
   if (msg.includes('状态') || msg.includes('status')) {
     return {
@@ -281,7 +324,7 @@ function parseBackendError(errorMsg) {
       tip: '请提供激活码以便客服帮您查询'
     }
   }
-  
+
   // 默认错误
   return {
     valid: false,
@@ -292,9 +335,9 @@ function parseBackendError(errorMsg) {
 }
 
 // 解析激活码错误信息，返回友好提示（Supabase 模式）
-function parseActivationError(errorMsg, data) {
+function parseActivationError(errorMsg, data = {}) {
   const msg = errorMsg.toLowerCase()
-  
+
   // 激活码不存在
   if (msg.includes('不存在') || msg.includes('not found')) {
     return {
@@ -304,7 +347,7 @@ function parseActivationError(errorMsg, data) {
       tip: '请确认激活码是否输入正确，或联系客服获取激活码'
     }
   }
-  
+
   // 激活码已失效/被撤销
   if (msg.includes('已失效') || msg.includes('revoked')) {
     return {
@@ -314,38 +357,75 @@ function parseActivationError(errorMsg, data) {
       tip: '请联系客服了解详情或获取新的激活码'
     }
   }
-  
-  // 激活码已过期
+
+  // 激活码已过期（7天有效期已结束）
   if (msg.includes('已过期') || msg.includes('expired')) {
     return {
       valid: false,
       error: 'CODE_EXPIRED',
       message: '激活码已过期，有效期已结束',
-      tip: '激活码有效期为 7 天，请联系客服获取新的激活码'
+      tip: '激活码有效期为 7 天，请联系客服获取新的激活码',
+      icon: '⏰'
     }
   }
-  
-  // 使用次数已达上限（总次数）
+
+  // ⚠️ 重要：今日使用次数的判断必须在总次数判断之前，因为错误信息可能包含"使用次数已达上限"
+  // 今日使用次数已达上限（每天 3 次）
+  if (msg.includes('今日使用次数') || msg.includes('daily limit')) {
+    // 从 data 中获取剩余天数
+    const daysLeft = data.days_left !== undefined ? data.days_left : null
+
+    let message = '今日测评次数已用完，明天再来吧～'
+    let tip = '每天可测评 3 次，明天 00:00 自动恢复'
+    let icon = '😊'
+
+    // 根据剩余天数显示不同的提示
+    if (daysLeft !== null) {
+      if (daysLeft === 0) {
+        // 今天是最后一天，但今日次数已用完
+        message = '今日测评次数已用完，激活码今天到期'
+        tip = '该激活码今天到期，明天将无法使用。如需继续测评，请联系客服获取新码'
+        icon = '⏰'
+      } else if (daysLeft === 1) {
+        // 还剩 1 天
+        message = '今日测评次数已用完，明天再来吧～'
+        tip = `激活码还剩 1 天有效期，明天 00:00 恢复 3 次测评机会`
+        icon = '😊'
+      } else if (daysLeft <= 3) {
+        // 还剩 2-3 天
+        message = '今日测评次数已用完，明天再来吧～'
+        tip = `激活码还剩 ${daysLeft} 天有效期，明天 00:00 恢复 3 次测评机会`
+        icon = '😊'
+      } else {
+        // 还剩 4-7 天
+        message = '今日测评次数已用完，明天再来吧～'
+        tip = `激活码还剩 ${daysLeft} 天有效期，每天可测评 3 次`
+        icon = '😊'
+      }
+    }
+
+    return {
+      valid: false,
+      error: 'DAILY_LIMIT_REACHED',
+      message,
+      tip,
+      icon,
+      daysLeft
+    }
+  }
+
+  // 使用次数已达上限（总次数 21 次）
+  // ⚠️ 这个判断必须在"今日使用次数"判断之后，避免误判
   if (msg.includes('使用次数已达上限') || msg.includes('max uses')) {
     return {
       valid: false,
       error: 'MAX_USES_REACHED',
-      message: '该激活码使用次数已用完',
-      tip: '每个激活码最多可使用 21 次（7天×3次/天），请联系客服获取新码'
+      message: '该激活码总使用次数已用完',
+      tip: '每个激活码最多可使用 21 次（7天×3次/天），请联系客服获取新码',
+      icon: '🔒'
     }
   }
-  
-  // 今日使用次数已达上限
-  if (msg.includes('今日使用次数') || msg.includes('daily limit')) {
-    return {
-      valid: false,
-      error: 'DAILY_LIMIT_REACHED',
-      message: '今日测评次数已用完，明天再来吧～',
-      tip: '每天可测评 3 次，明天 00:00 自动恢复',
-      icon: '😊'
-    }
-  }
-  
+
   // 激活码状态异常
   if (msg.includes('状态') || msg.includes('status')) {
     return {
@@ -355,7 +435,7 @@ function parseActivationError(errorMsg, data) {
       tip: '请提供激活码以便客服帮您查询'
     }
   }
-  
+
   // 默认错误
   return {
     valid: false,
@@ -434,7 +514,48 @@ function todayStr() {
 // 获取激活状态（剩余天数、今日剩余次数）
 export async function getActivationStatus() {
   const code = getActivationCode()
+  console.log('[getActivationStatus] 开始获取状态, code:', code)
   
+  // 本地后端：直接向后端查询最新状态，确保与数据库对齐
+  if (USE_LOCAL_BACKEND && code) {
+    try {
+      const deviceId = getDeviceId()
+      console.log('[getActivationStatus] 调用本地后端, deviceId:', deviceId)
+      const result = await fetchActivationStatus(code, deviceId)
+      console.log('[getActivationStatus] 后端返回:', result)
+      if (result && result.success) {
+        // 更新本地缓存
+        let usage = readUsage()
+        if (usage) {
+          usage.daysLeft = result.daysLeft
+          usage.remainingToday = result.remainingToday
+          usage.expired = result.expired
+          usage.dailyLimit = result.dailyLimit || usage.dailyLimit || 3
+          if (result.expiresAt) usage.expiresAt = new Date(result.expiresAt).toISOString()
+          usage.syncedDate = todayStr()
+          localStorage.setItem('activation_usage', JSON.stringify(usage))
+          console.log('[getActivationStatus] 已更新本地缓存')
+        } else {
+          console.warn('[getActivationStatus] 本地无usage缓存，直接使用后端数据')
+        }
+        
+        // 返回后端数据（即使本地没有缓存也要返回）
+        const statusData = {
+          daysLeft: result.daysLeft,
+          remainingToday: result.remainingToday,
+          expired: result.expired,
+          dailyLimit: result.dailyLimit || 3
+        }
+        console.log('[getActivationStatus] 返回状态数据:', statusData)
+        return statusData
+      } else {
+        console.warn('[getActivationStatus] 后端返回失败或无数据:', result)
+      }
+    } catch (err) {
+      console.error('[getActivationStatus] 本地后端获取激活状态失败:', err)
+    }
+  }
+
   // 如果配置了 Supabase 且有激活码，从服务器获取最新状态
   if (USE_SUPABASE && code) {
     try {
@@ -468,7 +589,7 @@ export async function getActivationStatus() {
 
   // 本地模式或 Supabase 失败时，使用本地数据
   const usage = readUsage()
-  if (!usage) return { daysLeft: 0, remainingToday: 0, expired: true }
+  if (!usage) return { daysLeft: 0, remainingToday: 0, expired: true, dailyLimit: 3 }
 
   const now = new Date()
   const expiresAt = new Date(usage.expiresAt)
@@ -476,10 +597,18 @@ export async function getActivationStatus() {
   const daysLeft = Math.max(0, Math.ceil(msLeft / (24 * 60 * 60 * 1000)))
   const expired = msLeft <= 0
 
-  const usedToday = usage.usageByDate[todayStr()] || 0
-  const remainingToday = Math.max(0, usage.dailyLimit - usedToday)
+  const today = todayStr()
+  const dailyLimit = usage.dailyLimit || 3
+  // 如果刚从后端同步过今日剩余次数，则优先使用它，避免与本地 usageByDate 不一致
+  let remainingToday
+  if (typeof usage.remainingToday === 'number' && usage.syncedDate === today) {
+    remainingToday = Math.max(0, usage.remainingToday)
+  } else {
+    const usedToday = usage.usageByDate[today] || 0
+    remainingToday = Math.max(0, dailyLimit - usedToday)
+  }
 
-  return { daysLeft, remainingToday, expired, dailyLimit: usage.dailyLimit }
+  return { daysLeft, remainingToday, expired, dailyLimit }
 }
 
 // 记录一次使用（返回更新后的状态）
@@ -487,6 +616,45 @@ export async function recordOneUsage() {
   const code = getActivationCode()
   const usage = readUsage()
   if (!usage || !code) return null
+
+  // 🔧 优先使用本地后端记录使用次数
+  if (USE_LOCAL_BACKEND && usage.recordId) {
+    try {
+      console.log('📊 [扣次数] 调用本地后端记录使用次数...')
+      const result = await recordUsage(usage.recordId)
+      
+      if (result.success) {
+        console.log(`✅ [扣次数] 成功！剩余 ${result.remainingToday} 次/今日，${result.daysLeft} 天`)
+        
+        // 更新本地缓存
+        usage.remainingToday = result.remainingToday
+        usage.daysLeft = result.daysLeft
+        if (result.expiresAt) {
+          usage.expiresAt = new Date(result.expiresAt).toISOString()
+        }
+        localStorage.setItem('activation_usage', JSON.stringify(usage))
+        
+        return {
+          daysLeft: result.daysLeft,
+          remainingToday: result.remainingToday,
+          expired: result.expired || false,
+          recorded: true
+        }
+      } else {
+        console.warn('⚠️ [扣次数] 后端返回失败:', result.message)
+        return {
+          daysLeft: usage.daysLeft || 0,
+          remainingToday: usage.remainingToday || 0,
+          expired: true,
+          recorded: false,
+          error: result.message
+        }
+      }
+    } catch (err) {
+      console.error('❌ [扣次数] 本地后端调用失败:', err)
+      // 失败时回退到 Supabase 或本地模式
+    }
+  }
 
   // 如果使用 Supabase，通过验证函数来更新使用次数
   if (USE_SUPABASE && code) {
@@ -527,7 +695,8 @@ export async function recordOneUsage() {
     }
   }
 
-  // 本地模式
+  // 本地模式（仅用于开发/测试）
+  console.log('⚠️ [扣次数] 使用本地LocalStorage模式（开发模式）')
   const status = await getActivationStatus()
   if (status.expired) return { ...status, recorded: false }
 

@@ -3,7 +3,8 @@ const express = require('express');
 const router = express.Router();
 const {
   verifyActivationCode,
-  recordUsage
+  recordUsage,
+  getActivationStatusByCode
 } = require('../activationService');
 
 // 验证激活码
@@ -51,6 +52,21 @@ router.post('/record-usage', async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+});
+
+// 获取激活状态（当前设备）
+router.post('/status', async (req, res) => {
+  try {
+    const { code, deviceId } = req.body;
+    if (!code || !deviceId) {
+      return res.status(400).json({ success: false, error: '缺少参数' });
+    }
+    const result = await getActivationStatusByCode(code, deviceId);
+    res.json(result);
+  } catch (error) {
+    console.error('获取激活状态错误:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

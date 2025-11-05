@@ -60,6 +60,7 @@
         <div class="help-tips">
           <p class="tip-item">💡 每天可测评 3 次，有效期 7 天</p>
           <p class="tip-item">🕐 今日次数用完？明天 00:00 自动恢复</p>
+          <p class="tip-item">🔄 想继续测试？可以随时更换新的激活码</p>
           <p class="tip-item">📧 需要帮助？请联系客服获取支持</p>
         </div>
       </div>
@@ -125,6 +126,9 @@ const handleStart = async () => {
       
       showToast(successMsg, 2000, 'success')
       
+      // 触发导航栏等处的激活状态刷新（无需刷新整页）
+      try { window.dispatchEvent(new Event('activation-updated')) } catch {}
+
       // 延迟跳转以显示成功提示
       setTimeout(() => {
         router.push('/assessment')

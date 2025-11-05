@@ -148,16 +148,16 @@
           </div>
           
           <div class="type-section">
-            <h4 class="subsection-title text-title">心理根源分析</h4>
-            <p class="text-body">你的社恐本质上源于：</p>
+            <h4 class="subsection-title text-title">为什么会这样</h4>
+            <p class="text-body">其实啊，你会有这些感受，可能是因为：</p>
             <div v-for="(cause, index) in report.type.rootCauses" :key="index" class="cause-item">
               <div class="cause-title text-title">{{ index + 1 }}. {{ cause.title }}</div>
               <div class="cause-desc text-body">{{ cause.desc }}</div>
             </div>
           </div>
-          
+
           <div class="type-section positive-section section-bg">
-            <h4 class="subsection-title text-title">重新认识你的社恐</h4>
+            <h4 class="subsection-title text-title">换个角度看自己</h4>
             <p class="text-body">{{ report.type.positiveReframe }}</p>
           </div>
 
@@ -170,20 +170,20 @@
 
         <!-- 5. 改善建议（默认收起） -->
         <div class="section-card card fade-in" style="animation-delay: 0.4s">
-          <h3 class="section-title text-title">专属改善建议</h3>
+          <h3 class="section-title text-title">给你的一些小建议</h3>
 
           <div class="collapse-toggle" @click="showSuggestions = !showSuggestions">
-            <span>{{ showSuggestions ? '收起改善建议' : '点击查看专属改善建议' }}</span>
+            <span>{{ showSuggestions ? '收起建议' : '点击查看可以试试的方法' }}</span>
             <span class="arrow" :class="{ open: showSuggestions }">▼</span>
           </div>
 
           <!-- 半展开预览：折叠时显示前2个建议标题 -->
           <div class="suggestions-preview" v-show="!showSuggestions">
             <div class="suggestions-preview-section">
-              <h4 class="subsection-title text-title">立即可行动</h4>
-              <div 
-                v-for="(suggestion, index) in report.suggestions.immediate.slice(0, 2)" 
-                :key="index" 
+              <h4 class="subsection-title text-title">现在就可以试试</h4>
+              <div
+                v-for="(suggestion, index) in report.suggestions.immediate.slice(0, 2)"
+                :key="index"
                 class="suggestion-preview-item"
               >
                 <div class="suggestion-preview-title">{{ index + 1 }}. {{ suggestion.title }}</div>
@@ -193,32 +193,32 @@
               </div>
             </div>
             <div class="preview-hint text-secondary">
-              <span>点击上方展开查看全部改善建议（立即可行动、4周计划、长期改善）</span>
+              <span>点击上方展开查看全部建议（现在就能做的、4周小计划、长期方向）</span>
             </div>
           </div>
 
           <div v-show="showSuggestions">
           <!-- 立即可行动 -->
           <div class="suggestions-section">
-            <h4 class="subsection-title text-title">立即可行动</h4>
+            <h4 class="subsection-title text-title">现在就可以试试</h4>
             <div v-for="(suggestion, index) in report.suggestions.immediate" :key="index" class="suggestion-item">
               <div class="suggestion-title">{{ index + 1 }}. {{ suggestion.title }}</div>
               <div v-if="suggestion.steps" class="suggestion-steps">
-                <div class="step-label">具体方法：</div>
+                <div class="step-label">具体怎么做：</div>
                 <ol class="step-list">
                   <li v-for="(step, i) in suggestion.steps" :key="i" class="step-item">{{ step }}</li>
                 </ol>
                 <div class="step-reason text-secondary">
-                  <strong>原理：</strong>{{ suggestion.reason }}
+                  <strong>为什么有用：</strong>{{ suggestion.reason }}
                 </div>
               </div>
               <div v-if="suggestion.content" class="suggestion-content text-body" v-html="formatContent(suggestion.content)"></div>
             </div>
           </div>
-          
+
           <!-- 4周渐进计划 -->
           <div class="suggestions-section">
-            <h4 class="subsection-title text-title">从"低风险社交"开始</h4>
+            <h4 class="subsection-title text-title">4周小计划（一步一步来）</h4>
             <div class="weekly-plan">
               <div v-for="(week, key) in report.suggestions.weekly" :key="key" class="week-item" v-if="key !== 'principle'">
                 <div class="week-title">{{ week.title }}</div>
@@ -227,17 +227,17 @@
                 </ul>
               </div>
               <div class="principle-note text-secondary">
-                <strong>关键原则：</strong>{{ report.suggestions.weekly.principle }}
+                <strong>记住：</strong>{{ report.suggestions.weekly.principle }}
               </div>
             </div>
           </div>
           
           <!-- 长期改善 -->
           <div class="suggestions-section">
-            <h4 class="subsection-title text-title">长期改善路径</h4>
+            <h4 class="subsection-title text-title">如果想深入了解</h4>
             <div class="longterm-content">
               <div class="resource-group">
-                <div class="resource-label">推荐阅读：</div>
+                <div class="resource-label">可以看看这些书：</div>
                 <ul class="resource-list">
                   <li v-for="(book, i) in report.suggestions.longTerm.books" :key="i" class="text-body">
                     · {{ book.title }} - {{ book.author }}
@@ -245,7 +245,7 @@
                 </ul>
               </div>
               <div class="resource-group">
-                <div class="resource-label">推荐练习：</div>
+                <div class="resource-label">可以试试这些方法：</div>
                 <ul class="resource-list">
                   <li v-for="(practice, i) in report.suggestions.longTerm.practices" :key="i" class="text-body">
                     · {{ practice }}
@@ -255,18 +255,18 @@
               <p class="text-secondary">{{ report.suggestions.longTerm.note }}</p>
             </div>
           </div>
-          
+
           <!-- 专业帮助提示 -->
           <div class="warning-section">
             <h4 class="warning-title">{{ report.suggestions.warning.title }}</h4>
-            <p class="text-body">如果你的社恐已经：</p>
+            <p class="text-body">如果你发现：</p>
             <ul class="warning-list">
               <li v-for="(condition, i) in report.suggestions.warning.conditions" :key="i" class="text-body">
                 · {{ condition }}
               </li>
             </ul>
             <p class="warning-advice text-body">
-              <strong>建议：</strong>{{ report.suggestions.warning.advice }}
+              <strong>那么：</strong>{{ report.suggestions.warning.advice }}
             </p>
           </div>
           </div>
@@ -468,15 +468,18 @@ const renderRadarChart = () => {
   const textSecondary = computedStyle.getPropertyValue('--text-secondary').trim()
   const borderColorVar = computedStyle.getPropertyValue('--border').trim()
   const isDark = document.body.className.includes('-dark')
-  
-  // 优化配色 - 更明亮生动
-  // 网格线与标签颜色使用主题变量，增强浅色模式对比度
-  const gridColor = borderColorVar || (isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.15)')
-  const radarLineColor = isDark ? 'rgba(255,180,150,0.9)' : 'rgba(255,77,79,0.85)'
-  const radarAreaColor = isDark 
-    ? 'rgba(255,180,150,0.25)' 
-    : 'rgba(255,160,122,0.25)'
-  const labelColor = textTitle || (isDark ? '#F5E6D3' : '#1A1A1A')
+
+  // 优化配色 - 使用主题色系，浅色模式用主题色，深色模式用浅粉色
+  // 网格线颜色：浅色模式用边框色，深色模式用浅色
+  const gridColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(186,155,146,0.7)'
+  // 雷达图线条颜色：浅色模式用主题色，深色模式用浅粉色
+  const radarLineColor = isDark ? 'rgba(255,180,150,0.9)' : 'rgba(186,155,146,0.95)'
+  // 雷达图填充颜色：浅色模式用主题色淡化，深色模式用淡粉色
+  const radarAreaColor = isDark
+    ? 'rgba(255,180,150,0.8)'
+    : 'rgba(186,155,146,0.6)'
+  // 标签颜色：浅色模式用标题色，深色模式用浅色
+  const labelColor = isDark ? '#F5E6D3' : textTitle || '#4e473f'
   
   // 准备雷达图数据
   const indicatorData = report.value.dimensions.map(dim => ({
@@ -495,43 +498,47 @@ const renderRadarChart = () => {
       name: {
         textStyle: {
           color: labelColor,
-          fontSize: 13,
-          fontWeight: 500,
-          // 提升在浅色背景下的可读性
-          textShadowColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.6)',
-          textShadowBlur: 2,
+          fontSize: 15,
+          fontWeight: 700,
+          // 深色模式才加阴影，浅色模式不需要
+          textShadowColor: isDark ? 'rgba(0,0,0,0.6)' : 'transparent',
+          textShadowBlur: isDark ? 4 : 0,
           textShadowOffsetX: 0,
-          textShadowOffsetY: 1
+          textShadowOffsetY: isDark ? 1 : 0
         }
       },
       splitLine: {
         lineStyle: {
           color: gridColor,
           type: 'solid',
-          width: 1.0
+          width: isDark ? 1.0 : 1.5
         }
       },
       splitArea: {
         show: true,
         areaStyle: {
-          color: isDark 
+          color: isDark
             ? ['rgba(212,181,172,0.05)', 'rgba(212,181,172,0.08)']
-            : ['rgba(255,160,122,0.04)', 'rgba(255,180,140,0.08)']
+            : ['rgba(186,155,146,0.04)', 'rgba(186,155,146,0.07)']
         }
       },
       axisLine: {
         lineStyle: {
           color: gridColor,
-          width: 1
+          width: isDark ? 1 : 2
         }
       }
     },
     tooltip: {
       show: true,
       confine: true,
-      backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.95)',
-      borderColor: gridColor,
-      textStyle: { color: labelColor, fontSize: 12 },
+      backgroundColor: isDark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.95)',
+      borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+      borderWidth: 1,
+      textStyle: { 
+        color: isDark ? '#F5E6D3' : '#1A1A1A', 
+        fontSize: 12 
+      },
       formatter: (params) => {
         const values = params.value
         return report.value.dimensions
@@ -550,24 +557,24 @@ const renderRadarChart = () => {
         },
         lineStyle: {
           color: radarLineColor,
-          width: 3.5,
-          shadowColor: radarLineColor,
-          shadowBlur: 8
+          width: isDark ? 3.5 : 4,
+          shadowColor: isDark ? radarLineColor : 'rgba(0,0,0,0.2)',
+          shadowBlur: isDark ? 8 : 6
         },
         itemStyle: {
           color: radarLineColor,
           borderColor: '#fff',
-          borderWidth: 2.5,
-          shadowColor: radarLineColor,
-          shadowBlur: 6
+          borderWidth: isDark ? 2.5 : 3,
+          shadowColor: isDark ? radarLineColor : 'rgba(0,0,0,0.3)',
+          shadowBlur: isDark ? 6 : 8
         },
-        symbolSize: 7,
+        symbolSize: isDark ? 7 : 8,
         emphasis: {
           lineStyle: {
-            width: 4
+            width: isDark ? 4 : 5
           },
           itemStyle: {
-            shadowBlur: 10
+            shadowBlur: isDark ? 10 : 15
           }
         }
       }]
@@ -1055,6 +1062,13 @@ onUnmounted(() => {
   border-radius: 12px;
 }
 
+/* 浅色模式下雷达图使用纯白背景，增强对比度 */
+.scheme1-light .radar-chart,
+.scheme2-light .radar-chart {
+  background: #FFFFFF;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
 /* 维度详解 */
 .dimensions-detail {
   margin-top: 24px;
@@ -1135,17 +1149,17 @@ onUnmounted(() => {
   color: #fff;
 }
 
-.dimension-preview-level.level-中等 {
+.dimension-preview-level.level-有点小紧张 {
   background: linear-gradient(135deg, #E8C4A0 0%, #D4A574 100%);
   color: #fff;
 }
 
-.dimension-preview-level.level-中高 {
+.dimension-preview-level.level-需要关注 {
   background: linear-gradient(135deg, #E8A87D 0%, #D48555 100%);
   color: #fff;
 }
 
-.dimension-preview-level.level-偏高 {
+.dimension-preview-level.level-重点改善区 {
   background: linear-gradient(135deg, #E89B9B 0%, #D67575 100%);
   color: #fff;
 }
@@ -1272,22 +1286,22 @@ onUnmounted(() => {
   transition: all 0.3s ease;
 }
 
-.level-较低 {
+.level-还好啦 {
   background: linear-gradient(135deg, #B8C9A8 0%, #91A88E 100%);
   color: #fff;
 }
 
-.level-中等 {
+.level-有点小紧张 {
   background: linear-gradient(135deg, #E8C4A0 0%, #D4A574 100%);
   color: #fff;
 }
 
-.level-中高 {
+.level-需要关注 {
   background: linear-gradient(135deg, #E8A87D 0%, #D48555 100%);
   color: #fff;
 }
 
-.level-偏高 {
+.level-重点改善区 {
   background: linear-gradient(135deg, #E89B9B 0%, #D67575 100%);
   color: #fff;
 }

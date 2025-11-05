@@ -231,8 +231,8 @@ export function getType(dimensions, basicInfo = {}) {
   if (dimensions.functional_impairment >= impairmentThreshold && dimensions.avoidance >= avoidanceThreshold) {
     return {
       id: 'functional_impairment',
-      name: '功能损害型社恐',
-      englishName: 'Functional Impairment Type',
+      name: '社交困难户',
+      englishName: 'Social Struggle Survivor',
       features: [
         '因社交焦虑错过了很多重要机会',
         '工作/学习受到明显影响',
@@ -252,8 +252,8 @@ export function getType(dimensions, basicInfo = {}) {
   if (dimensions.anticipation >= 16 && dimensions.rumination >= 14) {
     return {
       id: 'rehearsal',
-      name: '预演型社恐',
-      englishName: 'Rehearsal-Type Social Anxiety',
+      name: '脑内彩排一百遍星人',
+      englishName: 'Anticipatory Catastrophizer',
       features: [
         '事前过度担心，脑补各种糟糕场景',
         '反复预演对话，准备"完美"表现',
@@ -268,13 +268,13 @@ export function getType(dimensions, basicInfo = {}) {
       positiveReframe: '预演型社恐者往往共情能力强、善于观察细节、内心细腻敏感。这不是缺陷，而是特质。关键是学会接纳"不完美"的社交，而非追求"完美"表现。'
     }
   }
-  
+
   // 回避型：回避行为高 + 社交场景恐惧高
   if (dimensions.avoidance >= 15 && dimensions.scene_fear >= 18) {
     return {
       id: 'avoidant',
-      name: '回避型社恐',
-      englishName: 'Avoidant-Type Social Anxiety',
+      name: '社交隐身术修炼者',
+      englishName: 'Social Invisibility Practitioner',
       features: [
         '主动避免社交场合',
         '能不参加就不参加',
@@ -289,13 +289,13 @@ export function getType(dimensions, basicInfo = {}) {
       positiveReframe: '回避型社恐者往往更加独立、善于自我相处。学会在独处和社交之间找到平衡，逐步扩展舒适区，而非完全回避。'
     }
   }
-  
+
   // 表演型：生理反应高 + 负面评价恐惧高
   if (dimensions.physical >= 12 && dimensions.fear_of_negative_evaluation >= 18) {
     return {
       id: 'performance',
-      name: '表演型社恐',
-      englishName: 'Performance-Type Social Anxiety',
+      name: '别人眼光放大镜星人',
+      englishName: 'Spotlight Effect Amplifier',
       features: [
         '在需要表现的场合特别紧张',
         '身体反应强烈（心跳、出汗等）',
@@ -310,11 +310,11 @@ export function getType(dimensions, basicInfo = {}) {
       positiveReframe: '表演型社恐者往往对自己要求较高、追求卓越。学会接纳不完美的表现，理解紧张是正常反应，而非失败的信号。'
     }
   }
-  
+
   // 默认：综合型或轻度社恐
   return {
     id: 'general',
-    name: '综合型社恐',
+    name: '社交小纠结体质',
     englishName: 'General Social Anxiety',
     features: [
       '在多种社交情境中都会感到不适',
@@ -334,10 +334,10 @@ export function getType(dimensions, basicInfo = {}) {
 // ==================== 获取维度级别 ====================
 export function getDimensionLevel(score, maxScore = 25) {
   const percentage = (score / maxScore) * 100
-  if (percentage <= 40) return { level: '较低', icon: '✓' }
-  if (percentage <= 60) return { level: '中等', icon: '' }
-  if (percentage <= 80) return { level: '中高', icon: '' }
-  return { level: '偏高', icon: '⚠' }
+  if (percentage <= 40) return { level: '还好啦', icon: '✓' }
+  if (percentage <= 60) return { level: '有点小紧张', icon: '' }
+  if (percentage <= 80) return { level: '需要关注', icon: '' }
+  return { level: '重点改善区', icon: '⚠' }
 }
 
 // ==================== 获取维度解读 ====================
@@ -428,7 +428,7 @@ export async function generateReport(answers, basicInfo = {}) {
     scene_fear: { name: '社交场景恐惧', maxScore: 25, icon: '😰' },
     avoidance: { name: '回避行为程度', maxScore: 20, icon: '🚪' },
     anticipation: { name: '预期焦虑强度', maxScore: 20, icon: '⏰' },
-    fear_of_negative_evaluation: { name: '负面评价恐惧', maxScore: 25, icon: '👀' },
+    fear_of_negative_evaluation: { name: '别人眼光在意度', maxScore: 25, icon: '👀' },
     rumination: { name: '社交后反刍', maxScore: 20, icon: '🔄' },
     functional_impairment: { name: '功能损害程度', maxScore: 20, icon: '📉' }
   }
@@ -471,26 +471,50 @@ export async function generateReport(answers, basicInfo = {}) {
   
   // 🎯 尝试使用深度分析引擎，失败则使用本地规则
   try {
-    console.log('🎯 正在进行深度个性化分析...')
+    console.log('═══════════════════════════════════════════')
+    console.log('🎯 [报告生成] 开始深度个性化分析')
+    console.log(`📊 [报告生成] 总分: ${totalScore100}/100`)
+    console.log(`📈 [报告生成] 等级: ${level100.name}`)
+    console.log(`🏷️  [报告生成] 初步类型: ${type.name}`)
+    console.log(`👤 [报告生成] 用户信息: 年龄=${basicInfo.age}, 性别=${basicInfo.gender}, 职业=${basicInfo.occupation}`)
+    console.log('═══════════════════════════════════════════')
+    
     const personalizedType = await generatePersonalizedAnalysis(baseReport, answers, basicInfo)
     
     if (personalizedType) {
-      console.log('✅ 深度分析完成')
+      console.log('═══════════════════════════════════════════')
+      console.log('✅ [报告生成] AI深度分析成功！')
+      console.log(`📝 [报告生成] 生成类型: ${personalizedType.name}`)
+      console.log(`🌍 [报告生成] 英文名称: ${personalizedType.englishName}`)
+      console.log(`✨ [报告生成] 特征数量: ${personalizedType.features.length}`)
+      console.log(`🔍 [报告生成] 根源数量: ${personalizedType.rootCauses.length}`)
+      console.log('═══════════════════════════════════════════')
       type = personalizedType
       baseReport.type = personalizedType
       baseReport.aiGenerated = true // 内部标记，用户看不到
     } else {
       // 深度分析失败，使用本地增强规则
-      console.log('⚠️ 使用备用分析引擎')
+      console.log('═══════════════════════════════════════════')
+      console.log('⚠️ [报告生成] AI分析未成功，使用备用分析引擎')
+      console.log('🔄 [报告生成] 正在生成本地增强分析...')
+      console.log('═══════════════════════════════════════════')
       const enhancedType = generateEnhancedAnalysis(baseReport, answers, basicInfo)
+      console.log('✅ [报告生成] 本地增强分析完成')
+      console.log(`📝 [报告生成] 生成类型: ${enhancedType.name}`)
       type = enhancedType
       baseReport.type = enhancedType
       baseReport.aiGenerated = false
     }
   } catch (error) {
-    console.error('深度分析异常:', error)
+    console.log('═══════════════════════════════════════════')
+    console.error('❌ [报告生成] 深度分析异常:', error)
+    console.error(`📄 [报告生成] 错误类型: ${error.name}`)
+    console.error(`📄 [报告生成] 错误信息: ${error.message}`)
+    console.log('🔄 [报告生成] 使用本地增强规则作为降级方案')
+    console.log('═══════════════════════════════════════════')
     // 使用本地增强规则作为降级方案
     const enhancedType = generateEnhancedAnalysis(baseReport, answers, basicInfo)
+    console.log(`✅ [报告生成] 本地增强分析完成: ${enhancedType.name}`)
     type = enhancedType
     baseReport.type = enhancedType
     baseReport.aiGenerated = false
@@ -514,21 +538,21 @@ function getSuggestions(type, scores, basicInfo) {
         { title: '《蛤蟆先生去看心理医生》', author: '罗伯特·戴博德' }
       ],
       practices: [
-        '正念冥想（降低预期焦虑）',
-        '认知行为疗法CBT（改变思维模式）',
-        '暴露疗法（逐步面对恐惧场景）'
+        '每天冥想10分钟（帮你平静下来）',
+        '记录自己的想法和感受（看清楚自己在想什么）',
+        '一点点尝试害怕的场景（慢慢就不那么怕了）'
       ],
-      note: '改善需要时间，一般需要3-6个月持续练习。每一小步都是进步。'
+      note: '改善需要时间，一般要坚持3-6个月。别着急，每一小步都算进步。'
     },
     warning: {
-      title: '何时需要专业帮助？',
+      title: '什么时候该找专业人士聊聊？',
       conditions: [
-        '严重影响工作/学习',
-        '导致完全的社交隔离',
-        '伴随抑郁、惊恐发作',
-        '持续时间超过6个月且无好转'
+        '已经严重影响工作或学习了',
+        '几乎不敢出门见人了',
+        '同时还感到很抑郁，或者会突然心慌得厉害',
+        '这种状态持续半年以上，没有好转'
       ],
-      advice: '建议咨询专业心理咨询师或精神科医生。全国心理援助热线：12355'
+      advice: '找个专业的心理咨询师或医生聊聊，真的会有帮助。全国心理援助热线：12355'
     }
   }
 

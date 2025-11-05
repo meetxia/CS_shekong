@@ -2,6 +2,9 @@
  * AI生成服务 - 根据用户答题生成个性化社恐类型分析
  */
 
+// 导入题目数据
+import { questions } from '@/data/questions.js'
+
 // 使用国内可用的AI API（可以选择：通义千问、文心一言、Kimi等）
 // 这里提供通用的实现框架
 
@@ -13,186 +16,297 @@ const AI_CONFIG = {
     timeout: 30000
   }
   
-  /**
-   * 生成AI提示词
-   */
-  function buildPrompt(report, answers, basicInfo) {
-    const { totalScore, dimensions, type } = report
-    
-    // 构建维度描述
-    const dimensionDesc = dimensions.map(d => 
-      `${d.name}: ${d.score}/${d.maxScore} (${d.percentage}%) - ${d.level.level}`
-    ).join('\n')
-    
-    // 构建答题模式分析
-    const highScoreQuestions = Object.entries(answers)
-      .filter(([id, score]) => score >= 4 && id <= 33)
-      .map(([id]) => `Q${id}`)
-      .join(', ')
-    
-    const prompt = `你是一位专业的心理咨询师，擅长社交焦虑障碍的评估。请根据以下测评数据，为用户生成一份深度个性化的社恐类型分析报告。
+/**
+ * 生成AI提示词
+ */
+function buildPrompt(report, answers, basicInfo) {
+  const { totalScore, dimensions, type } = report
   
-  【用户基本信息】
-  年龄段: ${getAgeLabel(basicInfo.age)}
-  性别: ${getGenderLabel(basicInfo.gender)}
-  职业: ${getOccupationLabel(basicInfo.occupation)}
-  社交频率: ${getFrequencyLabel(basicInfo.social_frequency)}
+  // 构建维度描述
+  const dimensionDesc = dimensions.map(d => 
+    `${d.name}: ${d.score}/${d.maxScore} (${d.percentage}%) - ${d.level.level}`
+  ).join('\n')
   
-  【测评结果】
-  总分: ${totalScore}/100
-  等级: ${report.level.name}
-  初步类型: ${type.name}
+  // 构建答题模式分析（包含题目内容和用户选择）
+  const highScoreQuestions = Object.entries(answers)
+    .filter(([id, score]) => score >= 4 && Number(id) <= 33)
+    .map(([id]) => `Q${id}`)
+    .join(', ')
   
-  【维度得分详情】
-  ${dimensionDesc}
+  // 构建详细答题记录（包含题目和用户选择的选项）
+  const answerDetails = buildAnswerDetails(answers)
   
-  【高焦虑题目】
-  ${highScoreQuestions}
-  
-  【任务要求】
-  请生成以下内容（JSON格式）：
-  
-  1. **个性化社恐类型名称**（15字以内，要新颖、精准、有共鸣感）
-     - 不要用常规词汇，要根据用户的具体表现创造一个独特的类型名
-     - 示例："脑内彩排型社恐"、"完美主义表演者"、"情绪雷达过载型"
-  
-  2. **英文名称**（体现专业性）
-  
-  3. **核心特征**（3-5条，每条20-30字）
-     - 要具体、形象，让用户有"这说的就是我"的感觉
-     - 基于维度得分的具体表现
-  
-  4. **心理根源分析**（2-3个维度，每个包含标题和详细说明）
-     - 标题：8-12字，点出根本原因
-     - 说明：40-60字，结合心理学理论深入分析
-     - 要有深度，但不要过于学术化
-  
-  5. **正向重构**（60-80字）
-     - 将社恐特质转化为潜在优势
-     - 给予希望和力量
-     - 温暖而不敷衍
-  
-  【注意事项】
-  - 语言要温暖、共情、专业，但不要说教
-  - 避免模板化表达，要针对这个用户的独特模式
-  - 不要过度强调"病态"，而是理解和接纳
-  - 如果总分较高（>70），要更关注功能损害和专业建议
-  
-  【输出格式】
-  请严格按照以下JSON格式输出，不要有任何其他文字：
-  
-  {
-    "typeName": "你的个性化类型名称",
-    "englishName": "Personalized Type Name",
-    "features": [
-      "核心特征1",
-      "核心特征2",
-      "核心特征3"
-    ],
-    "rootCauses": [
-      {
-        "title": "根源1标题",
-        "desc": "根源1详细说明"
-      },
-      {
-        "title": "根源2标题",
-        "desc": "根源2详细说明"
-      }
-    ],
-    "positiveReframe": "正向重构内容"
-  }`
+  const prompt = `你是一位温暖、善解人意的心理陪伴者，就像用户最信任的朋友或贴心的心理咨询师。你的任务是用最温暖、最通俗的语言，帮助用户理解自己的社交焦虑模式。
+
+【重要：语言风格要求】
+🎯 **核心原则：像朋友聊天，不是写专业报告**
+- 想象你正在和一位好朋友面对面聊天，用日常对话的语气
+- 完全避免心理学术语（如"障碍"、"症状"、"病理"、"认知偏差"等）
+- 用生活化的比喻和场景来解释，而不是理论概念
+- 让用户感到"被看见"、"被理解"，而不是"被诊断"
+- 语气要温柔、接纳、充满希望，像在说"我懂你的感受"
+
+【用户基本信息】
+年龄段: ${getAgeLabel(basicInfo.age)}
+性别: ${getGenderLabel(basicInfo.gender)}
+职业: ${getOccupationLabel(basicInfo.occupation)}
+社交频率: ${getFrequencyLabel(basicInfo.social_frequency)}
+
+【测评结果】
+总分: ${totalScore}/100
+等级: ${report.level.name}
+初步类型: ${type.name}
+
+【维度得分详情】
+${dimensionDesc}
+
+【高焦虑题目】
+${highScoreQuestions}
+
+【用户答题详情】
+以下是用户在关键题目上的具体选择，请深入理解这些具体场景：
+
+${answerDetails}
+
+【任务要求】
+请生成以下内容（JSON格式）：
+
+1. **个性化类型名称**（15字以内，要新颖、精准、让人一看就有共鸣）
+   - 用生动的比喻或形象的描述，不要用专业术语
+   - 示例："脑内彩排一百遍星人"、"社交电池秒没电型"、"人群中的隐形人"
+   - 要让用户看到后会心一笑，觉得"这就是我啊！"
+
+2. **英文名称**（简洁优雅即可）
+
+3. **核心特征**（3-5条，每条用最日常的语言描述）
+   ✨ **语言风格示例：**
+   - ❌ 不要写："在社交场景中表现出显著的预期焦虑"
+   - ✅ 要写："还没到聚会现场，你就已经在脑子里把可能发生的尴尬场景演了一遍又一遍"
+
+   - ❌ 不要写："对负面评价具有高度敏感性"
+   - ✅ 要写："别人一个不经意的眼神，你都能脑补出一部'他是不是觉得我很奇怪'的连续剧"
+
+   - 每条特征要像在对朋友说"我发现你有个特点..."
+   - 用具体的场景和细节，而不是抽象的概念
+   - 让用户读完会想"天哪，你怎么这么懂我！"
+
+4. **为什么会这样**（2-3个原因，每个包含标题和说明）
+   ⚠️ **注意：不要叫"心理根源"，这太专业了！**
+
+   ✨ **标题要求**（8-12字）：
+   - 用温柔、理解的语气，像在说"我理解你为什么会这样"
+   - 示例："你只是太想做到完美"、"小时候的经历在影响你"、"你的大脑太善于保护你了"
+
+   ✨ **说明要求**（50-80字）：
+   - 完全不要用心理学术语！
+   - 用生活化的比喻来解释
+   - 示例：
+     ❌ 不要写："这源于负强化机制导致的回避行为固化"
+     ✅ 要写："就像你小时候被狗吓过一次，之后见到狗都会绕道走。每次你逃避社交，短期内确实轻松了，但大脑就记住了'逃避=安全'这个公式，下次就更想逃了。"
+
+   - 让用户感到被理解，而不是被分析
+   - 语气要像朋友在说"其实啊，你会这样是因为..."
+
+5. **换个角度看自己**（60-80字）
+   ⚠️ **不要叫"正向重构"，太专业！**
+
+   ✨ **语言风格要求：**
+   - 像朋友在鼓励你："你知道吗，你这个特点其实也有好的一面"
+   - 真诚地指出这些特质的积极面，不要空洞的鸡汤
+   - 给予具体的希望，而不是泛泛的安慰
+   - 示例：
+     ❌ 不要写："你的高敏感性可以转化为共情能力优势"
+     ✅ 要写："你对别人情绪的敏感，其实说明你是个很细腻、很会照顾别人感受的人。这种特质用对地方，会让你成为朋友圈里最温暖、最懂人心的那个人。"
+
+【语言风格总结 - 请务必遵守】
+✅ 要用的表达：
+- "你是不是经常..."、"每次...的时候"
+- "就像..."（用比喻）
+- "其实啊..."、"你知道吗..."
+- "我懂那种感觉..."
+- 具体的场景描述
+
+❌ 绝对不要用的词汇：
+- 障碍、症状、病理、疾病
+- 认知偏差、负强化、泛化
+- 功能损害、临床表现
+- 任何教科书式的专业术语
+
+【特殊情况处理】
+- 如果总分很高（>80），要温柔地建议寻求专业帮助，但不要吓唬用户
+- 用"找个专业的心理咨询师聊聊，可能会帮到你"，而不是"需要临床干预"
+
+【输出格式】
+请严格按照以下JSON格式输出，不要有任何其他文字：
+
+{
+  "typeName": "你的个性化类型名称",
+  "englishName": "Personalized Type Name",
+  "features": [
+    "核心特征1（用日常语言，像朋友在说话）",
+    "核心特征2",
+    "核心特征3"
+  ],
+  "rootCauses": [
+    {
+      "title": "原因1标题（温柔、理解的语气）",
+      "desc": "原因1说明（生活化的比喻，完全不用术语）"
+    },
+    {
+      "title": "原因2标题",
+      "desc": "原因2说明"
+    }
+  ],
+  "positiveReframe": "换个角度看自己的内容（像朋友在鼓励你）"
+}`
   
     return prompt
   }
   
-  /**
-   * 调用AI API生成分析
-   */
-  export async function generatePersonalizedAnalysis(report, answers, basicInfo) {
-    // 如果没有配置API Key，返回默认分析
-    if (!AI_CONFIG.apiKey) {
-      console.warn('未配置AI API Key，使用默认分析')
-      return null
-    }
+/**
+ * 调用AI API生成分析
+ */
+export async function generatePersonalizedAnalysis(report, answers, basicInfo) {
+  const startTime = Date.now()
   
-    try {
-      const prompt = buildPrompt(report, answers, basicInfo)
-      
-      // 调用Claude API（通过dpapi.cn中转）
-      // 创建超时控制器（兼容性更好）
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), AI_CONFIG.timeout)
-      
-      try {
-        const response = await fetch(AI_CONFIG.apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${AI_CONFIG.apiKey}`
-          },
-          body: JSON.stringify({
-            model: AI_CONFIG.model,
-            messages: [
-              {
-                role: 'system',
-                content: '你是一位专业且温暖的心理咨询师，擅长社交焦虑障碍的评估和分析。'
-              },
-              {
-                role: 'user',
-                content: prompt
-              }
-            ],
-            temperature: 0.7,
-            max_tokens: 2000
-          }),
-          signal: controller.signal
-        })
-        
-        clearTimeout(timeoutId)
-  
-        if (!response.ok) {
-          throw new Error(`AI API错误: ${response.status}`)
-        }
-    
-        const data = await response.json()
-        
-        // 解析AI返回的JSON（Claude API格式）
-        const aiResponse = data.choices?.[0]?.message?.content || ''
-        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
-        
-        if (!jsonMatch) {
-          throw new Error('AI返回格式错误')
-        }
-    
-        const analysis = JSON.parse(jsonMatch[0])
-        
-        // 验证必要字段
-        if (!analysis.typeName || !analysis.features || !analysis.rootCauses) {
-          throw new Error('AI返回数据不完整')
-        }
-    
-        return {
-          id: 'ai_generated',
-          name: analysis.typeName,
-          englishName: analysis.englishName || 'AI Generated Type',
-          features: analysis.features,
-          rootCauses: analysis.rootCauses,
-          positiveReframe: analysis.positiveReframe
-        }
-      } catch (fetchError) {
-        clearTimeout(timeoutId)
-        throw fetchError
-      }
-  
-    } catch (error) {
-      console.error('AI生成失败:', error)
-      // 如果是超时错误，给出更友好的提示
-      if (error.name === 'AbortError') {
-        console.warn('AI生成超时，将使用本地增强规则')
-      }
-      return null // 失败时返回null，使用原有的规则判断
-    }
+  // 如果没有配置API Key，返回默认分析
+  if (!AI_CONFIG.apiKey) {
+    console.log('📝 [AI服务] 未配置API Key，将使用本地增强规则')
+    return null
   }
+
+  try {
+    console.log('🚀 [AI服务] 开始调用AI API...')
+    console.log(`📡 [AI服务] API地址: ${AI_CONFIG.apiUrl}`)
+    console.log(`🤖 [AI服务] 模型: ${AI_CONFIG.model}`)
+    console.log(`⏱️  [AI服务] 超时设置: ${AI_CONFIG.timeout}ms`)
+    
+    const prompt = buildPrompt(report, answers, basicInfo)
+    console.log(`📝 [AI服务] 提示词长度: ${prompt.length} 字符`)
+    console.log(`📊 [AI服务] 用户答题详情: ${Object.keys(answers).length} 个答案`)
+    
+    // 调用Claude API（通过dpapi.cn中转）
+    // 创建超时控制器（兼容性更好）
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ [AI服务] 请求超时，正在中断...')
+      controller.abort()
+    }, AI_CONFIG.timeout)
+    
+    try {
+      console.log('📤 [AI服务] 正在发送请求...')
+      console.log(`🔑 [AI服务] API Key (前10位): ${AI_CONFIG.apiKey.substring(0, 10)}...`)
+      
+      const response = await fetch(AI_CONFIG.apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${AI_CONFIG.apiKey}`  // ✅ 使用完整的API Key
+        },
+        body: JSON.stringify({
+          model: AI_CONFIG.model,
+          messages: [
+            {
+              role: 'system',
+              content: '你是一位温暖、善解人意的心理陪伴者，像用户最信任的朋友。你用最通俗易懂、最有温度的语言帮助人们理解自己，从不使用冰冷的专业术语，而是用生活化的比喻和真诚的共情让人感到被理解、被接纳。'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000
+        }),
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+      const responseTime = Date.now() - startTime
+      
+      console.log(`📥 [AI服务] 收到响应 (耗时: ${responseTime}ms)`)
+      console.log(`📊 [AI服务] 响应状态: ${response.status} ${response.statusText}`)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`❌ [AI服务] API错误: ${response.status}`)
+        console.error(`📄 [AI服务] 错误详情: ${errorText}`)
+        throw new Error(`AI API错误: ${response.status} - ${errorText}`)
+      }
+  
+      const data = await response.json()
+      console.log('✅ [AI服务] JSON解析成功')
+      console.log(`📦 [AI服务] 返回数据:`, JSON.stringify(data).substring(0, 200) + '...')
+      
+      // 解析AI返回的JSON（Claude API格式）
+      const aiResponse = data.choices?.[0]?.message?.content || ''
+      console.log(`💬 [AI服务] AI回复长度: ${aiResponse.length} 字符`)
+      
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
+      
+      if (!jsonMatch) {
+        console.error('❌ [AI服务] AI返回格式错误，无法提取JSON')
+        console.error(`📄 [AI服务] AI原始回复:`, aiResponse.substring(0, 500))
+        throw new Error('AI返回格式错误')
+      }
+      
+      console.log('🔍 [AI服务] 正在解析AI返回的JSON...')
+      const analysis = JSON.parse(jsonMatch[0])
+      
+      // 验证必要字段
+      if (!analysis.typeName || !analysis.features || !analysis.rootCauses) {
+        console.error('❌ [AI服务] AI返回数据不完整')
+        console.error('📄 [AI服务] 缺失字段:', {
+          hasTypeName: !!analysis.typeName,
+          hasFeatures: !!analysis.features,
+          hasRootCauses: !!analysis.rootCauses
+        })
+        throw new Error('AI返回数据不完整')
+      }
+      
+      const totalTime = Date.now() - startTime
+      console.log(`🎉 [AI服务] AI分析成功！ (总耗时: ${totalTime}ms)`)
+      console.log(`📝 [AI服务] 生成的类型: ${analysis.typeName}`)
+      console.log(`✨ [AI服务] 特征数量: ${analysis.features.length}`)
+  
+      return {
+        id: 'ai_generated',
+        name: analysis.typeName,
+        englishName: analysis.englishName || 'AI Generated Type',
+        features: analysis.features,
+        rootCauses: analysis.rootCauses,
+        positiveReframe: analysis.positiveReframe
+      }
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      const errorTime = Date.now() - startTime
+      console.error(`❌ [AI服务] 请求异常 (耗时: ${errorTime}ms)`)
+      console.error(`📄 [AI服务] 错误详情:`, fetchError)
+      throw fetchError
+    }
+
+  } catch (error) {
+    const totalTime = Date.now() - startTime
+    console.error(`❌ [AI服务] AI生成失败 (总耗时: ${totalTime}ms)`)
+    console.error(`📄 [AI服务] 错误类型: ${error.name}`)
+    console.error(`📄 [AI服务] 错误信息: ${error.message}`)
+    console.error(`📄 [AI服务] 错误堆栈:`, error.stack)
+    
+    // 如果是超时错误，给出更友好的提示
+    if (error.name === 'AbortError') {
+      console.warn('⏰ [AI服务] AI生成超时，将使用本地增强规则')
+    } else if (error.message.includes('Failed to fetch')) {
+      console.warn('🌐 [AI服务] 网络请求失败，请检查网络连接')
+    } else if (error.message.includes('401') || error.message.includes('403')) {
+      console.warn('🔑 [AI服务] API Key无效或权限不足')
+    } else if (error.message.includes('429')) {
+      console.warn('⚠️ [AI服务] API调用频率超限或额度不足')
+    }
+    
+    console.log('🔄 [AI服务] 将使用本地增强规则生成报告')
+    return null // 失败时返回null，使用原有的规则判断
+  }
+}
   
   /**
    * 使用本地增强规则生成分析（不依赖AI API）
@@ -530,10 +644,62 @@ const AI_CONFIG = {
     return Math.abs(hash)
   }
   
-  /**
-   * 辅助函数：标签转换
-   */
-  function getAgeLabel(age) {
+/**
+ * 构建详细答题记录
+ */
+function buildAnswerDetails(answers) {
+  console.log('📝 [AI服务] 构建答题详情...')
+  console.log(`📊 [AI服务] 原始答案数量: ${Object.keys(answers).length}`)
+  
+  // 只选择分数较高（>=3）的题目，避免信息过载
+  const significantAnswers = Object.entries(answers)
+    .filter(([id, score]) => {
+      const qid = Number(id)
+      return score >= 3 && qid >= 1 && qid <= 33  // 只看测评题，不看基础信息题
+    })
+    .map(([id, score]) => {
+      const qid = Number(id)
+      const question = questions.find(q => q.id === qid)
+      
+      if (!question) {
+        console.warn(`⚠️ [AI服务] 找不到题目 Q${qid}`)
+        return null
+      }
+      
+      // 找到用户选择的选项
+      const selectedOption = question.options.find(opt => opt.score === score)
+      
+      return {
+        id: qid,
+        question: question.question,
+        userChoice: selectedOption ? selectedOption.text : '未知选项',
+        score
+      }
+    })
+    .filter(item => item !== null)
+    .sort((a, b) => b.score - a.score) // 按分数从高到低排序
+    .slice(0, 12)  // 最多显示12个最有代表性的题目，避免token过多
+  
+  console.log(`📊 [AI服务] 筛选后的高焦虑题目: ${significantAnswers.length} 个`)
+  
+  if (significantAnswers.length === 0) {
+    console.log('ℹ️ [AI服务] 用户所有题目焦虑程度都较低')
+    return '用户在所有题目上的焦虑程度都较低。'
+  }
+  
+  const result = significantAnswers
+    .map(item => `Q${item.id}. ${item.question}\n   用户选择：${item.userChoice} (焦虑程度: ${item.score}/5)`)
+    .join('\n\n')
+  
+  console.log(`✅ [AI服务] 答题详情构建完成，包含 ${significantAnswers.length} 个题目`)
+  
+  return result
+}
+
+/**
+ * 辅助函数：标签转换
+ */
+function getAgeLabel(age) {
     const map = {
       'teen': '12-17岁（青少年）',
       'college': '18-22岁（大学生）',
