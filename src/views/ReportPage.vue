@@ -128,7 +128,10 @@
 
         <!-- 4. 类型诊断 -->
         <div class="section-card card fade-in" style="animation-delay: 0.3s">
-          <h3 class="section-title text-title">你的社恐类型</h3>
+          <h3 class="section-title text-title">
+            你的社恐类型
+            <span class="enhanced-badge" title="基于你的答题模式深度分析">✨ 专属分析</span>
+          </h3>
           
           <div class="type-badge">
             <div class="type-name">「{{ report.type.name }}」</div>
@@ -303,7 +306,7 @@
         <div class="section-card card fade-in" style="animation-delay: 0.65s">
           <h3 class="section-title text-title">下一步行动</h3>
           <div class="next-actions">
-            <button class="btn-primary next-btn" @click="goRetest">再测一次（建议2-3天后）</button>
+            <button class="btn-primary next-btn" @click="goRetest">再测一次（建议5-6天后）</button>
             <button class="btn-secondary next-btn" @click="openShareActivation">分享激活码给好友</button>
             <button class="next-btn" @click="openShare">分享结果到小红书</button>
           </div>
@@ -406,6 +409,11 @@ const buildLetter = (typeName) => {
 }
 
 const goRetest = () => {
+  // 清除上一次测试的所有数据
+  localStorage.removeItem('test_answers')
+  localStorage.removeItem('test_basic_info')
+  
+  // 跳转到测评页面
   router.push('/assessment')
 }
 
@@ -894,6 +902,43 @@ onUnmounted(() => {
   margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ai-badge {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.enhanced-badge {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #ffa94d 0%, #ff6b6b 100%);
+  color: #fff;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(255, 169, 77, 0.3);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.5);
+  }
 }
 
 /* 等级图示 */

@@ -66,8 +66,8 @@
           </div>
         </div>
 
-        <!-- 移动端基础信息分页导航 -->
-        <div v-if="isMobile && basicInfoTotalPages > 1" class="basic-info-nav">
+        <!-- 基础信息分页导航（移动端和桌面端） -->
+        <div v-if="basicInfoTotalPages > 1" class="basic-info-nav">
           <button class="btn-nav" :disabled="basicInfoPageIndex === 0" @click="prevBasicInfoPage">上一页</button>
           <div class="basic-info-dots">
             <span v-for="n in basicInfoTotalPages" :key="n" class="dot" :class="{ active: n - 1 === basicInfoPageIndex }"></span>
@@ -191,18 +191,26 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, reactive, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { questions, basicInfoQuestions } from '@/data/questions'
+import { getRandomQuestions, basicInfoQuestions } from '@/data/questionBank'
 import { generateReport } from '@/utils/scoring'
 import { showToast } from '@/utils/toast'
 import { recordOneUsage, getActivationStatus } from '@/utils/activation'
 
 const router = useRouter()
 
+// 🎲 每次进入页面生成新的随机题目（60题库随机抽35题）
+const questions = ref([])
+
+// 🤖 AI预生成缓存
+let aiPreGeneratedReport = null
+let isAiPreGenerating = false
+
 const showBasicInfoPage = ref(true)
 const basicInfo = reactive({})
 const isMobile = ref(window.innerWidth <= 768)
 const basicInfoPageIndex = ref(0)
 const BASIC_INFO_PAGE_SIZE_MOBILE = 3
+const BASIC_INFO_PAGE_SIZE_DESKTOP = 3 // 桌面端每页显示3题
 const currentQuestion = ref(1)
 const answers = reactive({})
 const submitting = ref(false)
@@ -236,16 +244,16 @@ const canStartAssessment = computed(() => {
   return requiredQuestions.every(q => basicInfo[q.id])
 })
 
-// 基础信息分页（移动端）
+// 基础信息分页（移动端和桌面端都支持）
 const basicInfoTotalPages = computed(() => {
-  if (!isMobile.value) return 1
-  return Math.ceil(basicInfoQuestions.length / BASIC_INFO_PAGE_SIZE_MOBILE)
+  const pageSize = isMobile.value ? BASIC_INFO_PAGE_SIZE_MOBILE : BASIC_INFO_PAGE_SIZE_DESKTOP
+  return Math.ceil(basicInfoQuestions.length / pageSize)
 })
 
 const displayedBasicInfoQuestions = computed(() => {
-  if (!isMobile.value) return basicInfoQuestions
-  const start = basicInfoPageIndex.value * BASIC_INFO_PAGE_SIZE_MOBILE
-  return basicInfoQuestions.slice(start, start + BASIC_INFO_PAGE_SIZE_MOBILE)
+  const pageSize = isMobile.value ? BASIC_INFO_PAGE_SIZE_MOBILE : BASIC_INFO_PAGE_SIZE_DESKTOP
+  const start = basicInfoPageIndex.value * pageSize
+  return basicInfoQuestions.slice(start, start + pageSize)
 })
 
 const prevBasicInfoPage = () => {
@@ -257,7 +265,7 @@ const nextBasicInfoPage = () => {
 }
 
 const question = computed(() => {
-  return questions.find(q => q.id === currentQuestion.value)
+  return questions.value.find(q => q.id === currentQuestion.value)
 })
 
 const progressPercent = computed(() => {
@@ -289,17 +297,17 @@ const handleBasicInfoClick = (questionId, value) => {
   // 立即保存
   saveBasicInfo()
 
-  // 移动端：填写完前三题后自动跳转到星座题
-  if (isMobile.value && basicInfoPageIndex.value === 0) {
-    const firstThreeQuestions = ['age', 'gender', 'social_frequency']
-    const allFirstThreeAnswered = firstThreeQuestions.every(id => basicInfo[id])
+  // 检查当前页所有题目是否都已回答
+  const pageSize = isMobile.value ? BASIC_INFO_PAGE_SIZE_MOBILE : BASIC_INFO_PAGE_SIZE_DESKTOP
+  const start = basicInfoPageIndex.value * pageSize
+  const currentPageQuestions = basicInfoQuestions.slice(start, start + pageSize)
+  const allCurrentPageAnswered = currentPageQuestions.every(q => basicInfo[q.id])
 
-    if (allFirstThreeAnswered) {
-      // 延迟跳转，让用户看到选择效果
-      setTimeout(() => {
-        basicInfoPageIndex.value = 1
-      }, 300)
-    }
+  // 如果当前页所有题目都已回答，且不是最后一页，自动跳转到下一页
+  if (allCurrentPageAnswered && basicInfoPageIndex.value < basicInfoTotalPages.value - 1) {
+    setTimeout(() => {
+      basicInfoPageIndex.value++
+    }, 300)
   }
 }
 
@@ -395,7 +403,7 @@ const fillRandomAnswers = () => {
   
   // 填充答题
   for (let i = 1; i <= 35; i++) {
-    const question = questions.find(q => q.id === i)
+    const question = questions.value.find(q => q.id === i)
     if (question) {
       const randomOption = question.options[Math.floor(Math.random() * question.options.length)]
       answers[i] = { optionId: randomOption.id, score: randomOption.score }
@@ -446,12 +454,17 @@ const selectOption = (optionId, score) => {
   nextTick(() => {
     saveAnswers()
 
-    // 自动跳转到下一题（延迟1秒）
+    // 🤖 当答到第33题时（倒数第3题），提前开始AI生成，提升用户体验
+    if (currentQuestion.value === 33 && !isAiPreGenerating) {
+      preGenerateAIReport()
+    }
+
+    // 自动跳转到下一题（延迟0.6秒）
     setTimeout(() => {
       if (currentQuestion.value < 35) {
         nextQuestion(true) // 传递true表示这是正常答题流程
       }
-    }, 1000)
+    }, 600)
   })
 }
 
@@ -567,6 +580,31 @@ const loadAnswers = () => {
   }
 }
 
+// 🤖 预生成AI报告（在用户答到第33题时触发）
+const preGenerateAIReport = async () => {
+  if (isAiPreGenerating) return
+  
+  console.log('🚀 提前开始AI报告生成...')
+  isAiPreGenerating = true
+  
+  try {
+    // 转换答案格式为 { questionId: score }
+    const answersForScoring = {}
+    Object.entries(answers).forEach(([qId, answerObj]) => {
+      answersForScoring[qId] = answerObj.score
+    })
+    
+    // 提前生成报告
+    aiPreGeneratedReport = await generateReport(answersForScoring, basicInfo)
+    console.log('✅ AI报告预生成完成！')
+  } catch (error) {
+    console.error('❌ AI预生成失败:', error)
+    aiPreGeneratedReport = null
+  } finally {
+    isAiPreGenerating = false
+  }
+}
+
 // 提交测评
 const submitAssessment = async () => {
   // 检查是否所有题目都已回答
@@ -584,20 +622,31 @@ const submitAssessment = async () => {
   }
   
   submitting.value = true
-  showToast('正在生成报告...', 2000, 'info')
-  
-  // 模拟生成报告的延迟
-  await new Promise(resolve => setTimeout(resolve, 2000))
   
   try {
-    // 转换答案格式为 { questionId: score }
-    const answersForScoring = {}
-    Object.entries(answers).forEach(([qId, answerObj]) => {
-      answersForScoring[qId] = answerObj.score
-    })
+    let report
     
-    // 生成报告（传入答案和基础信息）
-    const report = generateReport(answersForScoring, basicInfo)
+    // 🎯 如果有预生成的报告，直接使用
+    if (aiPreGeneratedReport) {
+      console.log('⚡ 使用预生成的专属报告，秒开！')
+      showToast('正在生成专属分析报告...', 800, 'info')
+      await new Promise(resolve => setTimeout(resolve, 800)) // 短暂延迟，给用户反馈
+      report = aiPreGeneratedReport
+      aiPreGeneratedReport = null // 使用后清空
+    } else {
+      // 没有预生成，正常生成
+      console.log('⏳ 实时生成专属报告...')
+      showToast('正在生成专属分析报告...', 2000, 'info')
+      
+      // 转换答案格式为 { questionId: score }
+      const answersForScoring = {}
+      Object.entries(answers).forEach(([qId, answerObj]) => {
+        answersForScoring[qId] = answerObj.score
+      })
+      
+      // 生成报告（传入答案和基础信息）- 现在是异步的
+      report = await generateReport(answersForScoring, basicInfo)
+    }
     
     // 检查效度
     if (!report.isValid) {
@@ -653,6 +702,10 @@ const submitAssessment = async () => {
 }
 
 onMounted(() => {
+  // 🎲 生成随机题目（从60题库中随机抽取35题+2题固定效度题）
+  questions.value = getRandomQuestions()
+  console.log('✨ 已生成随机题目，本次测评共', questions.value.length, '题')
+  
   window.addEventListener('resize', handleResize)
   handleResize()
   loadBasicInfo()
@@ -679,7 +732,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 40px 20px;
+  padding: 80px 20px 40px;
   background: var(--bg-main);
   overflow-y: auto;
 }
@@ -826,7 +879,7 @@ onMounted(() => {
   line-height: 1.6;
 }
 
-/* 基础信息分页导航（移动端） */
+/* 基础信息分页导航（移动端和桌面端） */
 .basic-info-nav {
   display: flex;
   align-items: center;
@@ -1286,19 +1339,66 @@ onMounted(() => {
 /* 响应式 - 移动端优化观感 */
 @media (max-width: 480px) {
   .basic-info-page {
-    padding: 24px 16px;
+    padding: 72px 12px 16px;
+    min-height: 100vh;
   }
-  .info-options {
-
-  grid-template-columns: repeat(3, 1fr);
-}
+  
+  .basic-info-container {
+    padding: 0;
+  }
+  
   .basic-info-title {
-    font-size: 28px;
+    font-size: 24px;
+    margin-bottom: 8px;
   }
 
   .basic-info-subtitle {
-    font-size: 14px;
-    margin-bottom: 32px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  
+  .basic-info-form {
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  
+  .info-question-group {
+    gap: 10px;
+  }
+  
+  .info-label {
+    font-size: 15px;
+  }
+  
+  .info-options {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  
+  .info-option {
+    padding: 8px 6px;
+    border-radius: 8px;
+  }
+  
+  .info-option-text {
+    font-size: 13px;
+  }
+  
+  .btn-start-assessment {
+    height: 48px;
+    font-size: 16px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+  }
+  
+  .privacy-note {
+    font-size: 12px;
+    gap: 6px;
+  }
+  
+  .basic-info-nav {
+    margin: 12px 0 16px;
   }
 
   .content-area { padding: 16px; }

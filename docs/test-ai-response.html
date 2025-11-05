@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI分析测试</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      border-left: 4px solid #4CAF50;
+    }
+    .status {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .status.loading {
+      background: #FFC107;
+      color: #000;
+    }
+    .status.success {
+      background: #4CAF50;
+      color: white;
+    }
+    .status.error {
+      background: #f44336;
+      color: white;
+    }
+    .result {
+      margin-top: 15px;
+      padding: 15px;
+      background: white;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    button {
+      background: #2196F3;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #1976D2;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .config {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+    .config-item {
+      margin: 8px 0;
+    }
+    .config-label {
+      font-weight: 600;
+      color: #1976D2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 AI分析功能测试工具</h1>
+    
+    <div class="config">
+      <h3>当前配置</h3>
+      <div class="config-item">
+        <span class="config-label">API URL:</span>
+        <span id="apiUrl">加载中...</span>
+      </div>
+      <div class="config-item">
+        <span class="config-label">模型:</span>
+        <span id="model">加载中...</span>
+      </div>
+      <div class="config-item">
+        <span class="config-label">API Key:</span>
+        <span id="apiKey">加载中...</span>
+      </div>
+    </div>
+
+    <!-- 测试1: 检查AI API配置 -->
+    <div class="test-section">
+      <h3>
+        测试1: 检查AI API配置
+        <span id="status1" class="status loading">等待测试</span>
+      </h3>
+      <button onclick="testConfig()">开始测试</button>
+      <div id="result1" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- 测试2: 调用AI生成分析 -->
+    <div class="test-section">
+      <h3>
+        测试2: 调用AI生成分析
+        <span id="status2" class="status loading">等待测试</span>
+      </h3>
+      <button onclick="testAIGeneration()">开始测试</button>
+      <div id="result2" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- 测试3: 检查本地降级方案 -->
+    <div class="test-section">
+      <h3>
+        测试3: 本地增强分析（降级方案）
+        <span id="status3" class="status loading">等待测试</span>
+      </h3>
+      <button onclick="testLocalFallback()">开始测试</button>
+      <div id="result3" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- 测试4: 查看当前报告数据 -->
+    <div class="test-section">
+      <h3>
+        测试4: 查看当前报告中的AI数据
+        <span id="status4" class="status loading">等待测试</span>
+      </h3>
+      <button onclick="testCurrentReport()">查看报告</button>
+      <div id="result4" class="result" style="display:none;"></div>
+    </div>
+
+    <div style="margin-top: 30px; padding: 20px; background: #fff3cd; border-radius: 8px;">
+      <h4>💡 说明</h4>
+      <ul>
+        <li>测试1会检查AI API的配置是否正确</li>
+        <li>测试2会实际调用AI API生成分析报告</li>
+        <li>测试3会测试本地降级方案（不依赖AI）</li>
+        <li>测试4会显示你当前测试报告中使用的AI数据</li>
+      </ul>
+    </div>
+  </div>
+
+  <script type="module">
+    // 导入AI服务
+    import { generatePersonalizedAnalysis, generateEnhancedAnalysis } from '../src/utils/aiService.js';
+
+    // 显示配置信息
+    const AI_CONFIG = {
+      apiKey: import.meta.env.VITE_AI_API_KEY || 'sk-neZiqN36Qh4HbF7WB3633aC322844cB09c5474D64d5fA657',
+      apiUrl: import.meta.env.VITE_AI_API_URL || 'https://dpapi.cn/v1/chat/completions',
+      model: import.meta.env.VITE_AI_MODEL || 'claude-4.5-sonnet'
+    };
+
+    document.getElementById('apiUrl').textContent = AI_CONFIG.apiUrl;
+    document.getElementById('model').textContent = AI_CONFIG.model;
+    document.getElementById('apiKey').textContent = AI_CONFIG.apiKey.substring(0, 20) + '...';
+
+    // 测试数据
+    const mockReport = {
+      totalScore: 65,
+      level: { name: '中度社交焦虑' },
+      type: { name: '预演型社恐' },
+      dimensions: [
+        { name: '社交场景恐惧', score: 18, maxScore: 25, percentage: 72, level: { level: '偏高' } },
+        { name: '回避行为程度', score: 15, maxScore: 25, percentage: 60, level: { level: '中高' } },
+        { name: '预期焦虑强度', score: 20, maxScore: 25, percentage: 80, level: { level: '偏高' } },
+        { name: '负面评价恐惧', score: 17, maxScore: 25, percentage: 68, level: { level: '中高' } },
+        { name: '社交后反刍', score: 19, maxScore: 25, percentage: 76, level: { level: '偏高' } },
+        { name: '功能损害程度', score: 14, maxScore: 25, percentage: 56, level: { level: '中等' } }
+      ]
+    };
+
+    const mockAnswers = {
+      1: 4, 2: 3, 3: 5, 4: 4, 5: 3, 6: 4, 7: 5, 8: 3, 9: 4, 10: 4,
+      11: 3, 12: 4, 13: 5, 14: 3, 15: 4, 16: 4, 17: 3, 18: 5, 19: 4, 20: 3,
+      21: 4, 22: 3, 23: 4, 24: 5, 25: 3, 26: 4, 27: 3, 28: 4, 29: 3, 30: 4,
+      31: 3, 32: 4, 33: 3
+    };
+
+    const mockBasicInfo = {
+      age: 'college',
+      gender: 'female',
+      occupation: 'student',
+      social_frequency: 'occasional'
+    };
+
+    // 测试1: 检查配置
+    window.testConfig = function() {
+      const statusEl = document.getElementById('status1');
+      const resultEl = document.getElementById('result1');
+      
+      statusEl.className = 'status loading';
+      statusEl.textContent = '测试中...';
+      resultEl.style.display = 'block';
+      
+      let result = '✅ 配置检查结果：\n\n';
+      result += `API URL: ${AI_CONFIG.apiUrl}\n`;
+      result += `模型: ${AI_CONFIG.model}\n`;
+      result += `API Key: ${AI_CONFIG.apiKey.substring(0, 20)}...\n\n`;
+      
+      if (AI_CONFIG.apiKey && AI_CONFIG.apiUrl && AI_CONFIG.model) {
+        result += '✅ 所有配置项都已设置\n';
+        statusEl.className = 'status success';
+        statusEl.textContent = '配置正常';
+      } else {
+        result += '❌ 配置不完整\n';
+        statusEl.className = 'status error';
+        statusEl.textContent = '配置错误';
+      }
+      
+      resultEl.textContent = result;
+    };
+
+    // 测试2: AI生成
+    window.testAIGeneration = async function() {
+      const statusEl = document.getElementById('status2');
+      const resultEl = document.getElementById('result2');
+      
+      statusEl.className = 'status loading';
+      statusEl.textContent = '调用中...';
+      resultEl.style.display = 'block';
+      resultEl.textContent = '正在调用AI API，请稍候（最多30秒）...\n';
+      
+      const startTime = Date.now();
+      
+      try {
+        const result = await generatePersonalizedAnalysis(mockReport, mockAnswers, mockBasicInfo);
+        const duration = Date.now() - startTime;
+        
+        if (result) {
+          let output = `✅ AI生成成功！(耗时: ${duration}ms)\n\n`;
+          output += `类型名称: ${result.name}\n`;
+          output += `英文名称: ${result.englishName}\n\n`;
+          output += `核心特征 (${result.features.length}条):\n`;
+          result.features.forEach((f, i) => {
+            output += `${i + 1}. ${f}\n`;
+          });
+          output += `\n心理根源 (${result.rootCauses.length}条):\n`;
+          result.rootCauses.forEach((c, i) => {
+            output += `${i + 1}. ${c.title}\n   ${c.desc}\n`;
+          });
+          output += `\n正向重构:\n${result.positiveReframe}\n\n`;
+          output += `完整数据:\n${JSON.stringify(result, null, 2)}`;
+          
+          resultEl.textContent = output;
+          statusEl.className = 'status success';
+          statusEl.textContent = 'AI生成成功';
+        } else {
+          resultEl.textContent = '❌ AI返回null（可能是API调用失败或超时）';
+          statusEl.className = 'status error';
+          statusEl.textContent = 'AI返回null';
+        }
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        resultEl.textContent = `❌ AI生成失败 (耗时: ${duration}ms)\n\n错误信息:\n${error.message}\n\n${error.stack}`;
+        statusEl.className = 'status error';
+        statusEl.textContent = 'AI生成失败';
+      }
+    };
+
+    // 测试3: 本地降级
+    window.testLocalFallback = function() {
+      const statusEl = document.getElementById('status3');
+      const resultEl = document.getElementById('result3');
+      
+      statusEl.className = 'status loading';
+      statusEl.textContent = '生成中...';
+      resultEl.style.display = 'block';
+      
+      try {
+        const result = generateEnhancedAnalysis(mockReport, mockAnswers, mockBasicInfo);
+        
+        let output = `✅ 本地增强分析成功！\n\n`;
+        output += `类型名称: ${result.name}\n`;
+        output += `英文名称: ${result.englishName}\n\n`;
+        output += `核心特征 (${result.features.length}条):\n`;
+        result.features.forEach((f, i) => {
+          output += `${i + 1}. ${f}\n`;
+        });
+        output += `\n心理根源 (${result.rootCauses.length}条):\n`;
+        result.rootCauses.forEach((c, i) => {
+          output += `${i + 1}. ${c.title}\n   ${c.desc}\n`;
+        });
+        output += `\n正向重构:\n${result.positiveReframe}\n\n`;
+        output += `完整数据:\n${JSON.stringify(result, null, 2)}`;
+        
+        resultEl.textContent = output;
+        statusEl.className = 'status success';
+        statusEl.textContent = '本地生成成功';
+      } catch (error) {
+        resultEl.textContent = `❌ 本地生成失败\n\n错误信息:\n${error.message}\n\n${error.stack}`;
+        statusEl.className = 'status error';
+        statusEl.textContent = '本地生成失败';
+      }
+    };
+
+    // 测试4: 查看当前报告
+    window.testCurrentReport = function() {
+      const statusEl = document.getElementById('status4');
+      const resultEl = document.getElementById('result4');
+      
+      statusEl.className = 'status loading';
+      statusEl.textContent = '读取中...';
+      resultEl.style.display = 'block';
+      
+      try {
+        const savedReport = localStorage.getItem('test_report');
+        
+        if (savedReport) {
+          const report = JSON.parse(savedReport);
+          
+          let output = `✅ 找到测试报告数据\n\n`;
+          output += `总分: ${report.totalScore}\n`;
+          output += `等级: ${report.level.name}\n`;
+          output += `是否AI生成: ${report.aiGenerated ? '是' : '否（使用本地增强规则）'}\n\n`;
+          output += `类型信息:\n`;
+          output += `  名称: ${report.type.name}\n`;
+          output += `  英文: ${report.type.englishName}\n`;
+          output += `  特征数: ${report.type.features.length}\n`;
+          output += `  根源数: ${report.type.rootCauses.length}\n\n`;
+          output += `完整类型数据:\n${JSON.stringify(report.type, null, 2)}`;
+          
+          resultEl.textContent = output;
+          statusEl.className = 'status success';
+          statusEl.textContent = report.aiGenerated ? '使用AI分析' : '使用本地分析';
+        } else {
+          resultEl.textContent = '❌ 未找到测试报告数据\n\n请先完成一次测试，然后再查看报告。';
+          statusEl.className = 'status error';
+          statusEl.textContent = '未找到报告';
+        }
+      } catch (error) {
+        resultEl.textContent = `❌ 读取报告失败\n\n错误信息:\n${error.message}`;
+        statusEl.className = 'status error';
+        statusEl.textContent = '读取失败';
+      }
+    };
+  </script>
+</body>
+</html>
+

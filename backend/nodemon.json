@@ -1,0 +1,17 @@
+{
+  "watch": [
+    "*.js",
+    ".env"
+  ],
+  "ignore": [
+    "node_modules",
+    "*.log"
+  ],
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "ext": "js,json",
+  "delay": 1000,
+  "verbose": true
+}
+

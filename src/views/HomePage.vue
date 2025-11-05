@@ -119,9 +119,22 @@
             </div>
           </div>
         </div>
+
+        <!-- CTA按钮 -->
+        <button
+          @click="startTest"
+          class="btn-primary btn-start fade-in"
+          style="animation-delay: 0.2s"
+        >
+          <span class="btn-start-content">
+            <span v-if="hasActivation">继续测评</span>
+            <span v-else>开始专业测评</span>
+            <span class="iconify btn-icon" data-icon="mdi:arrow-right" data-width="20" data-height="20"></span>
+          </span>
+        </button>
   
         <!-- 测试维度说明 -->
-        <div class="dimensions-card card fade-in" style="animation-delay: 0.2s">
+        <div class="dimensions-card card fade-in" style="animation-delay: 0.3s">
           <div class="section-header">
             <h3 class="section-title text-title">
               <span class="iconify" data-icon="mdi:blur-radial" data-width="20" data-height="20"></span>
@@ -139,19 +152,6 @@
             </div>
           </div>
         </div>
-  
-        <!-- CTA按钮 -->
-        <button
-          @click="startTest"
-          class="btn-primary btn-start fade-in"
-          style="animation-delay: 0.3s"
-        >
-          <span class="btn-start-content">
-            <span v-if="hasActivation">继续测评</span>
-            <span v-else>开始专业测评</span>
-            <span class="iconify btn-icon" data-icon="mdi:arrow-right" data-width="20" data-height="20"></span>
-          </span>
-        </button>
   
         <!-- 说明文字 -->
         <div class="notice-text fade-in" style="animation-delay: 0.4s">
@@ -665,7 +665,8 @@
     border-radius: 14px;
     font-size: 17px;
     font-weight: 700;
-    margin-bottom: 20px;
+    margin-top: 8px;
+    margin-bottom: 24px;
     border: none;
     position: relative;
     overflow: hidden;

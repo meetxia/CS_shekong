@@ -101,7 +101,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { listActivationCodes, adminCreateCode, adminUpdateCode, adminRevokeCode, adminDeleteCode, adminCreateCodesBulk } from '@/utils/adminActivation'
+// 使用本地后端API
+import { listActivationCodes, adminCreateCode, adminUpdateCode, adminRevokeCode, adminDeleteCode, adminCreateCodesBulk } from '@/utils/backendActivation'
 
 const q = ref('')
 const status = ref('all')

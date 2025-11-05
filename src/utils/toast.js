@@ -16,9 +16,9 @@ export function showToast(message, duration = 2000, type = 'info') {
     top: 10%;
     left: 50%;
     transform: translate(-50%, 0);
-    padding: 14px 28px;
+    padding: 12px 20px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     z-index: 9999;
     background: ${colors[type] || colors.info};
@@ -28,6 +28,10 @@ export function showToast(message, duration = 2000, type = 'info') {
     backdrop-filter: blur(10px);
     will-change: transform, opacity;
     pointer-events: none;
+    white-space: nowrap;
+    max-width: 90vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
   `
   
   document.body.appendChild(toast)

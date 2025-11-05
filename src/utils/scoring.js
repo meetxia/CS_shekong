@@ -1,7 +1,9 @@
 /**
  * 测评计分和报告生成逻辑 - 专业优化版
- * 支持35题 + 9维度 + 效度检验
+ * 支持35题 + 9维度 + 效度检验 + AI个性化分析
  */
+
+import { generatePersonalizedAnalysis, generateEnhancedAnalysis } from './aiService.js'
 
 // ==================== 效度检验 ====================
 function checkValidity(answers) {
@@ -403,7 +405,7 @@ export function getDimensionInterpretation(dimension, score, maxScore) {
 }
 
 // ==================== 生成完整报告 ====================
-export function generateReport(answers, basicInfo = {}) {
+export async function generateReport(answers, basicInfo = {}) {
   // 先检查效度
   const validity = checkValidity(answers)
   
@@ -418,8 +420,8 @@ export function generateReport(answers, basicInfo = {}) {
   // 计算分数
   const scores = calculateScores(answers)
   
-  // 使用基础信息进行个性化类型判断
-  const type = getType(scores.dimensions, basicInfo)
+  // 使用基础信息进行个性化类型判断（默认规则）
+  let type = getType(scores.dimensions, basicInfo)
   
   // 维度配置（包含最高分）- 只显示6大核心维度
   const dimensionConfig = {
@@ -454,7 +456,8 @@ export function generateReport(answers, basicInfo = {}) {
   // 使用100分制进行等级判断
   const level100 = getLevel(totalScore100, basicInfo)
   
-  return {
+  // 构建基础报告
+  const baseReport = {
     isValid: true,
     testDate: new Date().toISOString(),
     basicInfo, // 包含用户的基础信息（用于算法，不在前端显示）
@@ -463,8 +466,40 @@ export function generateReport(answers, basicInfo = {}) {
     level: level100,
     type,
     dimensions,
-    suggestions: getSuggestions(type, scores, basicInfo)
+    suggestions: null // 先设为null，后面填充
   }
+  
+  // 🎯 尝试使用深度分析引擎，失败则使用本地规则
+  try {
+    console.log('🎯 正在进行深度个性化分析...')
+    const personalizedType = await generatePersonalizedAnalysis(baseReport, answers, basicInfo)
+    
+    if (personalizedType) {
+      console.log('✅ 深度分析完成')
+      type = personalizedType
+      baseReport.type = personalizedType
+      baseReport.aiGenerated = true // 内部标记，用户看不到
+    } else {
+      // 深度分析失败，使用本地增强规则
+      console.log('⚠️ 使用备用分析引擎')
+      const enhancedType = generateEnhancedAnalysis(baseReport, answers, basicInfo)
+      type = enhancedType
+      baseReport.type = enhancedType
+      baseReport.aiGenerated = false
+    }
+  } catch (error) {
+    console.error('深度分析异常:', error)
+    // 使用本地增强规则作为降级方案
+    const enhancedType = generateEnhancedAnalysis(baseReport, answers, basicInfo)
+    type = enhancedType
+    baseReport.type = enhancedType
+    baseReport.aiGenerated = false
+  }
+  
+  // 生成改善建议
+  baseReport.suggestions = getSuggestions(type, scores, basicInfo)
+  
+  return baseReport
 }
 
 // ==================== 获取改善建议 ====================

@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { isLoggedIn } from '@/utils/adminAuth'
 
 const routes = [
   {
@@ -42,23 +43,36 @@ const routes = [
     }
   },
   {
+    path: '/admin/login',
+    name: 'AdminLogin',
+    component: () => import('../views/admin/AdminLogin.vue'),
+    meta: { title: '管理员登录' }
+  },
+  {
     path: '/admin',
     name: 'AdminLayout',
     component: () => import('../views/admin/AdminLayout.vue'),
-    meta: { title: '激活码后台' },
+    meta: { title: '激活码后台', requiresAuth: true },
+    beforeEnter: (to, from, next) => {
+      if (!isLoggedIn()) {
+        next('/admin/login')
+      } else {
+        next()
+      }
+    },
     children: [
       { path: '', redirect: { name: 'AdminDashboard' } },
       {
         path: 'dashboard',
         name: 'AdminDashboard',
         component: () => import('../views/admin/AdminDashboard.vue'),
-        meta: { title: '数据总览' }
+        meta: { title: '数据总览', requiresAuth: true }
       },
       {
         path: 'codes',
         name: 'AdminCodes',
         component: () => import('../views/admin/AdminCodes.vue'),
-        meta: { title: '激活码管理' }
+        meta: { title: '激活码管理', requiresAuth: true }
       }
     ]
   }

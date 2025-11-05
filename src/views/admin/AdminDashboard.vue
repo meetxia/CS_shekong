@@ -60,7 +60,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { fetchActivationStats } from '@/utils/adminActivation'
+// 使用本地后端API
+import { fetchActivationStats } from '@/utils/backendActivation'
 
 const overview = ref({
   totalCodes: 0,

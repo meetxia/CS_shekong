@@ -2,13 +2,19 @@
  * 激活码验证工具
  * 
  * 支持两种模式：
- * 1. Supabase 模式（推荐）：使用 Supabase 后端验证
- * 2. 本地模式：模拟验证（开发/测试用）
+ * 1. 本地后端模式（推荐）：使用本地后端 API 验证
+ * 2. Supabase 模式：使用 Supabase 后端验证（已废弃）
+ * 3. 本地模拟模式：模拟验证（开发/测试用）
  */
 
 import { supabase, getDeviceId } from './supabaseClient'
+import { verifyActivationCode as verifyWithBackend, recordUsage } from './backendActivation'
 
-// 检查是否启用 Supabase
+// 检查是否启用本地后端
+const USE_LOCAL_BACKEND = true // 优先使用本地后端
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
+
+// 检查是否启用 Supabase（备用）
 const USE_SUPABASE = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY
 
 // 验证激活码格式
@@ -36,7 +42,7 @@ export function formatActivationCode(input) {
   return formatted
 }
 
-// 验证激活码（使用 Supabase 或本地模拟）
+// 验证激活码（使用本地后端、Supabase 或本地模拟）
 // 返回格式：{ valid: boolean, error: string, message: string, data: object }
 export async function verifyActivationCode(code) {
   // 格式验证
@@ -49,7 +55,61 @@ export async function verifyActivationCode(code) {
     }
   }
 
-  // 如果配置了 Supabase，使用 Supabase 验证
+  // 优先使用本地后端验证
+  if (USE_LOCAL_BACKEND) {
+    try {
+      const deviceId = getDeviceId()
+      const result = await verifyWithBackend(code, deviceId)
+      
+      if (result.valid) {
+        // 验证成功，保存激活信息
+        saveActivationFromBackend(code, result)
+        // 计算剩余天数
+        const expiresAt = result.expiresAt ? new Date(result.expiresAt) : null
+        let daysLeft = 7
+        if (expiresAt) {
+          const msLeft = expiresAt.getTime() - Date.now()
+          daysLeft = Math.max(0, Math.ceil(msLeft / (24 * 60 * 60 * 1000)))
+        }
+        
+        // 计算今日剩余次数
+        const todayUsage = result.todayUsage || 0
+        const dailyLimit = result.dailyLimit || 3
+        const remainingToday = Math.max(0, dailyLimit - todayUsage)
+        
+        return {
+          valid: true,
+          data: {
+            daysLeft: daysLeft,
+            remainingToday: remainingToday,
+            recordId: result.recordId,
+            expiresAt: result.expiresAt
+          }
+        }
+      } else {
+        // 验证失败，返回错误信息
+        return parseBackendError(result.error || '验证失败')
+      }
+    } catch (err) {
+      console.error('激活码验证异常（本地后端）:', err)
+      
+      // 如果本地后端失败，尝试使用 Supabase（如果配置了）
+      if (USE_SUPABASE) {
+        console.log('本地后端失败，尝试使用 Supabase...')
+        // 继续执行下面的 Supabase 验证逻辑
+      } else {
+        // 没有 Supabase，返回网络错误
+        return {
+          valid: false,
+          error: 'NETWORK_ERROR',
+          message: '验证服务暂时不可用，请稍后重试',
+          tip: '请确保后端服务运行在 ' + BACKEND_URL
+        }
+      }
+    }
+  }
+
+  // 如果配置了 Supabase，使用 Supabase 验证（备用）
   if (USE_SUPABASE) {
     try {
       const deviceId = getDeviceId()
@@ -109,7 +169,129 @@ export async function verifyActivationCode(code) {
   }
 }
 
-// 解析激活码错误信息，返回友好提示
+// 保存激活状态（从本地后端数据保存）
+function saveActivationFromBackend(code, backendData) {
+  localStorage.setItem('test_activated', 'true')
+  localStorage.setItem('activation_code', code)
+  const now = Date.now()
+  localStorage.setItem('activation_time', now)
+
+  // 计算过期时间
+  let expiresAt
+  if (backendData.expiresAt) {
+    expiresAt = new Date(backendData.expiresAt)
+  } else {
+    expiresAt = new Date(now)
+    expiresAt.setDate(expiresAt.getDate() + 7)
+  }
+  
+  // 计算剩余天数
+  const msLeft = expiresAt.getTime() - now
+  const daysLeft = Math.max(0, Math.ceil(msLeft / (24 * 60 * 60 * 1000)))
+  
+  // 计算今日剩余次数
+  const todayUsage = backendData.todayUsage || 0
+  const dailyLimit = backendData.dailyLimit || 3
+  const remainingToday = Math.max(0, dailyLimit - todayUsage)
+  
+  const usage = {
+    code,
+    createdAt: new Date(now).toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    dailyLimit: dailyLimit,
+    usageByDate: {},
+    recordId: backendData.recordId, // 保存记录 ID，用于后续更新
+    daysLeft: daysLeft,
+    remainingToday: remainingToday,
+    usageCount: backendData.usageCount || 0
+  }
+  localStorage.setItem('activation_usage', JSON.stringify(usage))
+}
+
+// 解析后端错误信息，返回友好提示
+function parseBackendError(errorMsg) {
+  if (!errorMsg) {
+    return {
+      valid: false,
+      error: 'UNKNOWN_ERROR',
+      message: '验证失败，请稍后重试',
+      tip: '如果问题持续，请联系客服'
+    }
+  }
+  
+  const msg = errorMsg.toLowerCase()
+  
+  // 激活码不存在
+  if (msg.includes('不存在') || msg.includes('not found') || msg.includes('不存在')) {
+    return {
+      valid: false,
+      error: 'CODE_NOT_FOUND',
+      message: '激活码不存在，请检查后重试',
+      tip: '请确认激活码是否输入正确，或联系客服获取激活码'
+    }
+  }
+  
+  // 激活码已失效/被撤销
+  if (msg.includes('已失效') || msg.includes('revoked') || msg.includes('已撤销')) {
+    return {
+      valid: false,
+      error: 'CODE_REVOKED',
+      message: '该激活码已失效，无法继续使用',
+      tip: '请联系客服了解详情或获取新的激活码'
+    }
+  }
+  
+  // 激活码已过期
+  if (msg.includes('已过期') || msg.includes('expired') || msg.includes('过期')) {
+    return {
+      valid: false,
+      error: 'CODE_EXPIRED',
+      message: '激活码已过期，有效期已结束',
+      tip: '激活码有效期为 7 天，请联系客服获取新的激活码'
+    }
+  }
+  
+  // 使用次数已达上限（总次数）
+  if (msg.includes('使用次数已达上限') || msg.includes('max uses') || msg.includes('次数已达上限')) {
+    return {
+      valid: false,
+      error: 'MAX_USES_REACHED',
+      message: '该激活码使用次数已用完',
+      tip: '每个激活码最多可使用 21 次（7天×3次/天），请联系客服获取新码'
+    }
+  }
+  
+  // 今日使用次数已达上限
+  if (msg.includes('今日使用次数') || msg.includes('daily limit') || msg.includes('今日次数')) {
+    return {
+      valid: false,
+      error: 'DAILY_LIMIT_REACHED',
+      message: '今日测评次数已用完，明天再来吧～',
+      tip: '每天可测评 3 次，明天 00:00 自动恢复',
+      icon: '😊'
+    }
+  }
+  
+  // 激活码状态异常
+  if (msg.includes('状态') || msg.includes('status')) {
+    return {
+      valid: false,
+      error: 'INVALID_STATUS',
+      message: '激活码状态异常，请联系客服',
+      tip: '请提供激活码以便客服帮您查询'
+    }
+  }
+  
+  // 默认错误
+  return {
+    valid: false,
+    error: 'UNKNOWN_ERROR',
+    message: errorMsg || '验证失败，请稍后重试',
+    tip: '如果问题持续，请联系客服'
+  }
+}
+
+// 解析激活码错误信息，返回友好提示（Supabase 模式）
 function parseActivationError(errorMsg, data) {
   const msg = errorMsg.toLowerCase()
   
