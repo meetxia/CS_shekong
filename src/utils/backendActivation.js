@@ -230,20 +230,22 @@ export async function fetchActivationStats() {
       headers: getAuthHeaders()
     })
     const result = await response.json()
-    
+
     if (!result.success) {
       throw new Error(result.error)
     }
-    
+
     const data = result.data
-    
+
     return {
       totalCodes: data.total_codes || 0,
       activeCodes: data.active_codes || 0,
       expiredCodes: data.expired_codes || 0,
       revokedCodes: data.revoked_codes || 0,
-      totalActivations: data.total_activations || 0,
+      usedCodes: data.used_codes || 0,
+      totalRecords: data.total_records || 0,
       totalUsageCount: data.total_usage_count || 0,
+      todayUsageCount: data.today_usage_count || 0,
       byCode: data.byCode || []
     }
   } catch (error) {

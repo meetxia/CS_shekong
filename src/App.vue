@@ -1,6 +1,6 @@
 <template>
   <div id="app" :class="colorScheme">
-    <AppHeader />
+    <AppHeader v-if="!isAdminRoute" />
     <router-view v-slot="{ Component }">
       <transition name="fade" mode="out-in">
         <component :is="Component" />
@@ -11,12 +11,19 @@
 
 <script setup>
 import { computed, onMounted, watch, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useColorScheme } from './composables/useColorScheme'
 import AppHeader from '@/components/AppHeader.vue'
 
+const route = useRoute()
 const { currentScheme, initColorScheme } = useColorScheme()
-const colorScheme = computed(() => currentScheme.value || 'scheme1-light')
+const colorScheme = computed(() => currentScheme.value || 'scheme1-dark')
 const previousScheme = ref('')
+
+// 判断是否是后台路由
+const isAdminRoute = computed(() => {
+  return route.path.startsWith('/admin')
+})
 
 onMounted(() => {
   initColorScheme()

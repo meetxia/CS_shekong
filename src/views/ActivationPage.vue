@@ -77,7 +77,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { formatActivationCode, validateActivationCode, verifyActivationCode, saveActivation } from '@/utils/activation'
+import { formatActivationCode, validateActivationCode, verifyActivationCode, saveActivation, recordOneUsage } from '@/utils/activation'
 import { showToast } from '@/utils/toast'
 
 const router = useRouter()
@@ -112,20 +112,33 @@ const handleStart = async () => {
 
   try {
     const result = await verifyActivationCode(activationCode.value)
-    
+
     if (result.valid) {
       // 兼容旧版本（如果返回的是 boolean）
       if (typeof result === 'boolean') {
         saveActivation(activationCode.value)
       }
-      
-      // 成功提示
-      const successMsg = result.data 
-        ? `激活成功！有效期 ${result.data.daysLeft} 天，每天 3 次测评机会`
-        : '激活成功！'
-      
+
+      console.log('✅ [激活成功] 开始扣除一次使用次数...')
+
+      // 🔧 【关键修改】激活成功后立即扣除一次使用次数
+      const usageResult = await recordOneUsage()
+
+      if (!usageResult || !usageResult.recorded) {
+        // 扣除次数失败
+        const errorMsg = usageResult?.error || '无法开始测评'
+        error.value = errorMsg
+        showToast(errorMsg, 2500, 'error')
+        loading.value = false
+        return
+      }
+
+      console.log(`✅ [扣次数成功] 今日剩余 ${usageResult.remainingToday} 次，有效期剩余 ${usageResult.daysLeft} 天`)
+
+      // 成功提示（包含剩余次数信息）
+      const successMsg = `激活成功！今日剩余 ${usageResult.remainingToday} 次 · 剩余 ${usageResult.daysLeft} 天`
       showToast(successMsg, 2000, 'success')
-      
+
       // 触发导航栏等处的激活状态刷新（无需刷新整页）
       try { window.dispatchEvent(new Event('activation-updated')) } catch {}
 
@@ -139,20 +152,20 @@ const handleStart = async () => {
       const mainMsg = result.message || '激活失败，请稍后重试'
       const tipMsg = result.tip || ''
       const icon = result.icon || ''
-      
+
       // 设置错误信息（显示在输入框下方）
       error.value = mainMsg
-      
+
       // Toast 提示（更详细）
       let toastMsg = icon ? `${icon} ${mainMsg}` : mainMsg
       if (tipMsg) {
         toastMsg = `${mainMsg}\n${tipMsg}`
       }
-      
+
       // 根据错误类型设置不同的提示样式
       const toastType = errorType === 'DAILY_LIMIT_REACHED' ? 'warning' : 'error'
       const duration = errorType === 'DAILY_LIMIT_REACHED' ? 3000 : 2500
-      
+
       showToast(toastMsg, duration, toastType)
     }
   } catch (err) {

@@ -973,64 +973,41 @@ const submitAssessment = async () => {
       return
     }
 
-    // 🔧 记录一次使用（扣除次数）- 先记录，成功后再保存报告
-    console.log('📊 [提交测评] 开始记录使用次数...')
-    const rec = await recordOneUsage()
-    console.log('📊 [提交测评] 记录结果:', rec)
+    // 🔧 【修改】不再在提交测评时扣除次数（已在激活时扣除）
+    // 直接保存报告
+    console.log('📊 [提交测评] 保存测评报告...')
 
-    // 🔧 触发自定义事件，通知导航栏刷新激活码状态
-    window.dispatchEvent(new Event('activation-updated'))
-    console.log('📢 [提交测评] 已触发激活状态更新事件')
+    // 保存报告到 localStorage
+    localStorage.setItem('test_report', JSON.stringify(report))
 
-    if (rec && rec.recorded) {
-      // ✅ 记录成功，保存报告并允许查看
-
-      // 保存报告到 localStorage
-      localStorage.setItem('test_report', JSON.stringify(report))
-
-      // 写入本地历史记录（仅保存在当前设备浏览器中）
-      try {
-        const raw = localStorage.getItem('test_history')
-        const history = raw ? JSON.parse(raw) : []
-        history.unshift({
-          date: new Date().toISOString(),
-          totalScore: report.totalScore,
-          levelName: report.level.name,
-          typeName: report.type.name
-        })
-        // 只保留最近20条，避免无限增长
-        localStorage.setItem('test_history', JSON.stringify(history.slice(0, 20)))
-      } catch (e) {
-        console.warn('保存历史记录失败', e)
-      }
-
-      showToast(`测试完成！今日剩余${rec.remainingToday}次 · 剩余${rec.daysLeft}天`, 2200, 'success')
-
-      // 跳转到报告页
-      setTimeout(() => {
-        router.push('/report')
-      }, 1500)
-    } else {
-      // ❌ 记录失败，不保存报告，不允许查看新报告
-      submitting.value = false
-
-      // 检查失败原因
-      const s = await getActivationStatus()
-      if (s.expired) {
-        showToast('激活码已过期，无法完成测评', 2500, 'error')
-        setTimeout(() => router.push('/activation'), 2000)
-      } else if (s.remainingToday === 0) {
-        showToast('今日测评次数已用完（3次/天），明天0点自动恢复', 2500, 'warning')
-        setTimeout(() => router.push('/'), 2000)
-      } else {
-        showToast('记录使用失败，请稍后重试', 2000, 'error')
-        setTimeout(() => router.push('/'), 2000)
-      }
-
-      // 注意：这里不删除旧报告，保留用户之前的测评结果
-      console.log('⚠️ [提交测评] 记录失败，不保存新报告，但保留旧报告（如果有）')
-      return
+    // 写入本地历史记录（仅保存在当前设备浏览器中）
+    try {
+      const raw = localStorage.getItem('test_history')
+      const history = raw ? JSON.parse(raw) : []
+      history.unshift({
+        date: new Date().toISOString(),
+        totalScore: report.totalScore,
+        levelName: report.level.name,
+        typeName: report.type.name
+      })
+      // 只保留最近20条，避免无限增长
+      localStorage.setItem('test_history', JSON.stringify(history.slice(0, 20)))
+    } catch (e) {
+      console.warn('保存历史记录失败', e)
     }
+
+    // 获取当前激活状态用于显示
+    const status = await getActivationStatus()
+    const remainingMsg = status.remainingToday !== undefined && status.daysLeft !== undefined
+      ? `今日剩余${status.remainingToday}次 · 剩余${status.daysLeft}天`
+      : ''
+
+    showToast(`测试完成！${remainingMsg}`, 2200, 'success')
+
+    // 跳转到报告页
+    setTimeout(() => {
+      router.push('/report')
+    }, 1500)
   } catch (error) {
     console.error('生成报告失败:', error)
     showToast('生成报告失败，请重试', 2000, 'error')

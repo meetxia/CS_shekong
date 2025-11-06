@@ -1,7 +1,6 @@
 /**
  * 分享卡片生成工具
- * 为小红书用户优化的结果卡片生成
- */
+ * 为小红书用户优化的结果卡片生�? */
 
 /**
  * 生成分享卡片HTML
@@ -20,8 +19,7 @@ export function generateShareCard(report, cardType = 'type') {
 }
 
 /**
- * 卡片1: 总分卡
- */
+ * 卡片1: 总分�? */
 function generateScoreCard(report) {
   const card = document.createElement('div');
   card.className = 'share-card score-card';
@@ -33,15 +31,14 @@ function generateScoreCard(report) {
     
     <div class="card-body">
       <div class="level-badge ${report.level.name}">${report.level.name}</div>
-      <div class="total-score">${report.totalScore}<span class="unit">/100分</span></div>
+      <div class="total-score">${report.totalScore}<span class="unit">/100�?/span></div>
       
       <div class="score-scale">
         <div class="scale-bar">
           <div class="scale-marker" style="left: ${report.totalScore}%"></div>
         </div>
         <div class="scale-labels">
-          <span style="left: 10%">10<br>轻度</span>
-          <span style="left: 30%">30<br>中度</span>
+          <span style="left: 30%">30<br>轻度</span>
           <span style="left: 50%">50<br>中度</span>
           <span style="left: 70%">70<br>重度</span>
           <span style="left: 100%">100<br>极重</span>
@@ -58,20 +55,19 @@ function generateScoreCard(report) {
 }
 
 /**
- * 卡片2: 类型卡（核心传播卡片）
- */
+ * 卡片2: 类型卡（核心传播卡片�? */
 function generateTypeCard(report) {
   const { type } = report;
   
   // 为不同类型配图标
   const typeIcons = {
-    '预演型社恐': '<span class="iconify" data-icon="mdi:script-text" data-width="24" data-height="24"></span>',
-    '回避型社恐': '<span class="iconify" data-icon="mdi:run" data-width="24" data-height="24"></span>',
-    '表演型社恐': '<span class="iconify" data-icon="mdi:microphone" data-width="24" data-height="24"></span>',
-    '综合型社恐': '<span class="iconify" data-icon="mdi:swap-horizontal-circle" data-width="24" data-height="24"></span>',
+    '预演型社�?: '<span class="iconify" data-icon="mdi:script-text" data-width="24" data-height="24"></span>',
+    '回避型社�?: '<span class="iconify" data-icon="mdi:run" data-width="24" data-height="24"></span>',
+    '表演型社�?: '<span class="iconify" data-icon="mdi:microphone" data-width="24" data-height="24"></span>',
+    '综合型社�?: '<span class="iconify" data-icon="mdi:swap-horizontal-circle" data-width="24" data-height="24"></span>',
     '轻度社恐': '<span class="iconify" data-icon="mdi:sprout" data-width="24" data-height="24"></span>',
-    '负面评价恐惧型社恐': '<span class="iconify" data-icon="mdi:eye" data-width="24" data-height="24"></span>',
-    '功能损害型社恐': '<span class="iconify" data-icon="mdi:alert-circle" data-width="24" data-height="24"></span>'
+    '负面评价恐惧型社�?: '<span class="iconify" data-icon="mdi:eye" data-width="24" data-height="24"></span>',
+    '功能损害型社�?: '<span class="iconify" data-icon="mdi:alert-circle" data-width="24" data-height="24"></span>'
   };
   
   const icon = typeIcons[type.name] || '<span class="iconify" data-icon="mdi:heart" data-width="24" data-height="24"></span>';
@@ -85,7 +81,7 @@ function generateTypeCard(report) {
     
     <div class="card-body">
       <div class="type-name">
-        「${type.name}」${icon}
+        �?{type.name}�?{icon}
       </div>
       <div class="type-name-en">${type.englishName}</div>
       
@@ -108,7 +104,7 @@ function generateTypeCard(report) {
       <div class="hashtags">
         #社恐测试 #${type.name}
       </div>
-      <p class="test-hint">点击查看完整分析 →</p>
+      <p class="test-hint">点击查看完整分析 �?/p>
     </div>
   `;
   
@@ -121,8 +117,7 @@ function generateTypeCard(report) {
 function generateRadarCard(report) {
   const { dimensions } = report;
   
-  // 找出最高和最低维度
-  const sorted = [...dimensions].sort((a, b) => b.percentage - a.percentage);
+  // 找出最高和最低维�?  const sorted = [...dimensions].sort((a, b) => b.percentage - a.percentage);
   const highest = sorted[0];
   const lowest = sorted[sorted.length - 1];
   
@@ -130,7 +125,7 @@ function generateRadarCard(report) {
   card.className = 'share-card radar-card';
   card.innerHTML = `
     <div class="card-header">
-      <h3>六维度社恐分析</h3>
+      <h3>六维度社恐分�?/h3>
     </div>
     
           <div class="card-body">
@@ -152,18 +147,18 @@ function generateRadarCard(report) {
       <div class="divider"></div>
       
       <div class="pain-point">
-        <div class="label">你的痛点：</div>
+        <div class="label">你的痛点�?/div>
         <p>${getDimensionInsight(highest.name)}</p>
       </div>
       
       <div class="quick-tip">
-        <div class="label"><span class="iconify" data-icon="mdi:lightbulb-on" data-width="18" data-height="18"></span> 立即行动：</div>
+        <div class="label"><span class="iconify" data-icon="mdi:lightbulb-on" data-width="18" data-height="18"></span> 立即行动�?/div>
         <p>${getDimensionTip(highest.name)}</p>
       </div>
     </div>
     
     <div class="card-footer">
-      <p class="hint">查看完整报告了解更多 →</p>
+      <p class="hint">查看完整报告了解更多 �?/p>
     </div>
   `;
   
@@ -175,16 +170,16 @@ function generateRadarCard(report) {
  */
 function getTypeQuote(typeName) {
   const quotes = {
-    '预演型社恐': '你不是准备不够，而是给自己的压力太大了。',
-    '回避型社恐': '逃避不可耻，但迈出一小步会更自由。',
-    '表演型社恐': '你的紧张别人看不见，只有你自己在意。',
-    '综合型社恐': '社恐不是缺陷，而是你敏感细腻的证明。',
-    '轻度社恐': '你已经很好了，只是需要多一点点勇气。',
-    '负面评价恐惧型社恐': '过度在意他人评价，往往忽略了真实的自己。',
-    '功能损害型社恐': '意识到问题，就是改变的第一步。'
+    '预演型社�?: '你不是准备不够，而是给自己的压力太大了�?,
+    '回避型社�?: '逃避不可耻，但迈出一小步会更自由�?,
+    '表演型社�?: '你的紧张别人看不见，只有你自己在意�?,
+    '综合型社�?: '社恐不是缺陷，而是你敏感细腻的证明�?,
+    '轻度社恐': '你已经很好了，只是需要多一点点勇气�?,
+    '负面评价恐惧型社�?: '过度在意他人评价，往往忽略了真实的自己�?,
+    '功能损害型社�?: '意识到问题，就是改变的第一步�?
   };
   
-  return quotes[typeName] || '社恐不是你的错，慢慢来，一切都会好起来。';
+  return quotes[typeName] || '社恐不是你的错，慢慢来，一切都会好起来�?;
 }
 
 /**
@@ -192,37 +187,34 @@ function getTypeQuote(typeName) {
  */
 function getDimensionInsight(dimensionName) {
   const insights = {
-    '社交场景恐惧': '多人聚会、公开场合是你最大的压力源',
+    '社交场景恐惧': '多人聚会、公开场合是你最大的压力�?,
     '回避行为程度': '你经常选择逃避社交，错失了很多机会',
     '预期焦虑强度': '事前过度担心是你最大的困扰',
-    '负面评价恐惧': '过度在意他人评价是你的核心困扰',
-    '社交后反刍': '事后反复回想让你陷入自责循环',
-    '功能损害程度': '社交焦虑已明显影响你的生活质量'
+    '负面评价恐惧': '过度在意他人评价是你的核心困�?,
+    '社交后反�?: '事后反复回想让你陷入自责循环',
+    '功能损害程度': '社交焦虑已明显影响你的生活质�?
   };
   
-  return insights[dimensionName] || '这个维度需要重点关注';
+  return insights[dimensionName] || '这个维度需要重点关�?;
 }
 
 /**
- * 获取维度对应的快速建议
- */
+ * 获取维度对应的快速建�? */
 function getDimensionTip(dimensionName) {
   const tips = {
-    '社交场景恐惧': '从3-5人小聚开始，逐步适应',
-    '回避行为程度': '每周至少参加1次社交活动',
+    '社交场景恐惧': '�?-5人小聚开始，逐步适应',
+    '回避行为程度': '每周至少参加1次社交活�?,
     '预期焦虑强度': '使用5秒法则打断焦虑思维',
-    '负面评价恐惧': '记住"聚光灯效应"，别人没那么关注你',
-    '社交后反刍': '设定"回顾时间"，限制反刍时长',
-    '功能损害程度': '建议寻求专业帮助，从最小社交单元开始重建'
+    '负面评价恐惧': '记住"聚光灯效�?，别人没那么关注�?,
+    '社交后反�?: '设定"回顾时间"，限制反刍时�?,
+    '功能损害程度': '建议寻求专业帮助，从最小社交单元开始重�?
   };
   
   return tips[dimensionName] || '查看报告获取详细建议';
 }
 
 /**
- * 将卡片转换为图片（用于保存和分享）
- * 使用dom-to-image-more库（更稳定的替代方案）
- */
+ * 将卡片转换为图片（用于保存和分享�? * 使用dom-to-image-more库（更稳定的替代方案�? */
 export async function cardToImage(cardElement) {
   try {
     // 动态导入库
@@ -285,17 +277,16 @@ async function fallbackToCanvas(element) {
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, rect.width, rect.height);
     
-    // 简单提示
-    const computedStyle = getComputedStyle(element);
+    // 简单提�?    const computedStyle = getComputedStyle(element);
     const textColor = computedStyle.getPropertyValue('--text-title') || '#000000';
     ctx.fillStyle = textColor;
     ctx.font = '16px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('请长按截图保存', rect.width / 2, rect.height / 2);
+    ctx.fillText('请长按截图保�?, rect.width / 2, rect.height / 2);
     
     return canvas.toDataURL('image/png');
   } catch (error) {
-    console.error('降级方案也失败:', error);
+    console.error('降级方案也失�?', error);
     return null;
   }
 }
@@ -353,14 +344,12 @@ export function showShareModal(report) {
   
   document.body.appendChild(modal);
   
-  // 初始化显示分数卡（直接显示分数卡，不再默认显示类型卡）
-  const preview = modal.querySelector('#cardPreview');
+  // 初始化显示分数卡（直接显示分数卡，不再默认显示类型卡�?  const preview = modal.querySelector('#cardPreview');
   const scoreCard = generateScoreCard(report);
   scoreCard.setAttribute('data-theme', 'light');
   preview.appendChild(scoreCard);
   
-  // 当前选中的主题
-  let currentTheme = 'light';
+  // 当前选中的主�?  let currentTheme = 'light';
   
   // 主题切换
   modal.querySelectorAll('.theme-option').forEach(option => {
@@ -382,16 +371,15 @@ export function showShareModal(report) {
     const originalText = btn.textContent;
     
     try {
-      btn.textContent = '生成中...';
+      btn.textContent = '生成�?..';
       btn.disabled = true;
       
       const card = preview.querySelector('.share-card');
       const imageUrl = await cardToImage(card);
       
       if (imageUrl) {
-        // 生成文件名
-        const timestamp = new Date().getTime();
-        const filename = `社恐测评-分数卡-${timestamp}.png`;
+        // 生成文件�?        const timestamp = new Date().getTime();
+        const filename = `社恐测评-分数�?${timestamp}.png`;
         
         downloadImage(imageUrl, filename);
         
@@ -443,11 +431,11 @@ function renderRadarForShare(report, cardElement, theme = 'light') {
     // 根据主题设置颜色
     const themeColors = {
       light: {
-        gridColor: 'rgba(186,155,146,0.35)',
-        lineColor: 'rgba(186,155,146,0.95)',
-        areaColor: 'rgba(186,155,146,0.2)',
-        labelColor: '#1C1614',
-        areaGradient: ['rgba(186,155,146,0.04)', 'rgba(186,155,146,0.07)']
+        gridColor: 'rgba(212,165,116,0.25)',
+        lineColor: 'rgba(255,77,79,0.85)',
+        areaColor: 'rgba(255,160,122,0.25)',
+        labelColor: '#2A2A2A',
+        areaGradient: ['rgba(255,160,122,0.04)', 'rgba(255,180,140,0.08)']
       },
       warm: {
         gridColor: 'rgba(232,155,155,0.3)',
@@ -474,8 +462,7 @@ function renderRadarForShare(report, cardElement, theme = 'light') {
     
     const colors = themeColors[theme] || themeColors.light;
     
-    // 准备雷达图数据
-    const indicatorData = report.dimensions.map(dim => ({
+    // 准备雷达图数�?    const indicatorData = report.dimensions.map(dim => ({
       name: dim.name,
       max: dim.maxScore
     }));

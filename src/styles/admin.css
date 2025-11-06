@@ -86,11 +86,78 @@
 .form label { font-size: 12px; color: var(--text-secondary); }
 .error { color: var(--error); font-size: 12px; }
 
-@media (max-width: 960px) {
+/* 平板端优化 */
+@media (max-width: 960px) and (min-width: 769px) {
   :root { --admin-sidebar-width: 64px; }
   .admin-brand { display: none; }
   .admin-link { justify-content: center; }
   .admin-link span { display: none; }
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .admin-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .admin-sidebar {
+    display: none;
+  }
+
+  .admin-topbar {
+    padding: 10px 12px;
+  }
+
+  .admin-content {
+    padding: 12px;
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .btn {
+    height: 44px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+
+  .input, .select {
+    height: 44px;
+    padding: 0 14px;
+    font-size: 15px;
+  }
+
+  .table th, .table td {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 375px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-content {
+    padding: 10px;
+  }
 }
 
 

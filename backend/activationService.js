@@ -26,36 +26,29 @@ async function verifyActivationCode(inputCode, deviceId = null) {
     if (inputCode.length !== 12) {
       return { valid: false, error: '激活码格式错误' };
     }
-    
+
     // 重新添加连字符
     inputCode = `${inputCode.slice(0, 4)}-${inputCode.slice(4, 8)}-${inputCode.slice(8, 12)}`;
-    
+
     // 查询激活码
     const [codes] = await pool.query(
       'SELECT * FROM activation_codes WHERE code = ?',
       [inputCode]
     );
-    
+
     if (codes.length === 0) {
       return { valid: false, error: '激活码不存在' };
     }
-    
+
     const code = codes[0];
-    
+
     // 检查状态
     if (code.status !== 'active') {
       return { valid: false, error: '激活码已失效' };
     }
-    
-    // 检查是否过期
-    if (code.expires_at && new Date(code.expires_at) < new Date()) {
-      await pool.query('UPDATE activation_codes SET status = ? WHERE id = ?', ['expired', code.id]);
-      return { valid: false, error: '激活码已过期' };
-    }
-    
-    // 检查使用次数
+
+    // 检查设备数是否已达上限
     if (code.current_uses >= code.max_uses) {
-      await pool.query('UPDATE activation_codes SET status = ? WHERE id = ?', ['used', code.id]);
       return { valid: false, error: '激活码使用次数已达上限' };
     }
     
@@ -122,7 +115,6 @@ async function verifyActivationCode(inputCode, deviceId = null) {
         isActivated: true,
         recordId: record.id,
         expiresAt: record.expires_at,
-        usageCount: record.usage_count,
         todayUsage: totalUsedToday, // 返回所有设备的总使用次数
         dailyLimit: code.daily_limit
       };
@@ -150,7 +142,6 @@ async function verifyActivationCode(inputCode, deviceId = null) {
       isActivated: false,
       recordId: result.insertId,
       expiresAt,
-      usageCount: 0,
       todayUsage: totalUsedToday, // 返回所有设备的总使用次数
       dailyLimit: code.daily_limit
     };
@@ -227,13 +218,11 @@ async function recordUsage(recordId) {
     
     // 通过检查，记录使用（在当前设备的记录上+1）
     usageByDate[today] = currentDeviceUsedToday + 1;
-    
-    // 更新记录
+
+    // 更新记录 (只更新 usage_by_date)
     await pool.query(
-      `UPDATE activation_records 
-       SET usage_count = usage_count + 1, 
-           last_used_at = NOW(), 
-           usage_by_date = ? 
+      `UPDATE activation_records
+       SET usage_by_date = ?
        WHERE id = ?`,
       [JSON.stringify(usageByDate), recordId]
     );
@@ -357,13 +346,62 @@ async function listActivationCodes({ page = 1, pageSize = 20, status, q } = {}) 
     
     // 获取列表
     const [list] = await pool.query(
-      `SELECT * FROM activation_codes ${where} 
-       ORDER BY created_at DESC 
+      `SELECT * FROM activation_codes ${where}
+       ORDER BY created_at DESC
        LIMIT ? OFFSET ?`,
       [...params, pageSize, offset]
     );
-    
-    return { success: true, list, total };
+
+    // 为每个激活码计算今日已用次数和剩余时间
+    const today = new Date().toISOString().split('T')[0];
+    const enrichedList = await Promise.all(list.map(async (code) => {
+      // 获取该激活码的所有激活记录
+      const [records] = await pool.query(
+        'SELECT usage_by_date, expires_at FROM activation_records WHERE code_id = ?',
+        [code.id]
+      );
+
+      // 计算今日所有设备的总使用次数
+      let todayUsed = 0;
+      let earliestExpiresAt = null;
+
+      for (const rec of records) {
+        const usageByDate = JSON.parse(rec.usage_by_date || '{}');
+        todayUsed += (usageByDate[today] || 0);
+
+        // 找到最早的过期时间
+        if (rec.expires_at) {
+          const expiresAt = new Date(rec.expires_at);
+          if (!earliestExpiresAt || expiresAt < earliestExpiresAt) {
+            earliestExpiresAt = expiresAt;
+          }
+        }
+      }
+
+      // 计算剩余时间 (精确到分钟)
+      let timeRemaining = null;
+      if (earliestExpiresAt) {
+        const msLeft = earliestExpiresAt.getTime() - Date.now();
+        if (msLeft > 0) {
+          const days = Math.floor(msLeft / (24 * 60 * 60 * 1000));
+          const hours = Math.floor((msLeft % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+          const minutes = Math.floor((msLeft % (60 * 60 * 1000)) / (60 * 1000));
+          timeRemaining = { days, hours, minutes, text: `${days}天${hours}小时${minutes}分钟` };
+        } else {
+          timeRemaining = { days: 0, hours: 0, minutes: 0, text: '已过期' };
+        }
+      }
+
+      return {
+        ...code,
+        todayUsed,           // 今日已用次数
+        todayRemaining: Math.max(0, code.daily_limit - todayUsed), // 今日剩余次数
+        timeRemaining,       // 剩余时间对象
+        activatedDevices: records.length  // 已激活设备数
+      };
+    }));
+
+    return { success: true, list: enrichedList, total };
     
   } catch (error) {
     console.error('获取激活码列表失败:', error);
@@ -389,17 +427,15 @@ async function createActivationCode(data) {
     }
     
     const [result] = await pool.query(
-      `INSERT INTO activation_codes 
-       (code, max_uses, daily_limit, validity_days, expires_at, notes, created_by) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO activation_codes
+       (code, max_uses, daily_limit, validity_days, notes)
+       VALUES (?, ?, ?, ?, ?)`,
       [
         code,
-        data.max_uses || 1,
+        data.max_uses || 21,
         data.daily_limit || 3,
         data.validity_days || 7,
-        data.expires_at || null,
-        data.notes || '',
-        data.created_by || 'admin'
+        data.notes || ''
       ]
     );
     
@@ -452,10 +488,6 @@ async function updateActivationCode(id, data) {
     if (data.validity_days !== undefined) {
       updates.push('validity_days = ?');
       params.push(data.validity_days);
-    }
-    if (data.expires_at !== undefined) {
-      updates.push('expires_at = ?');
-      params.push(data.expires_at);
     }
     if (data.notes !== undefined) {
       updates.push('notes = ?');
@@ -517,49 +549,130 @@ async function getActivationStats() {
   try {
     // 激活码统计
     const [codeStats] = await pool.query(`
-      SELECT 
+      SELECT
         COUNT(*) as total_codes,
         SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_codes,
         SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) as expired_codes,
         SUM(CASE WHEN status = 'revoked' THEN 1 ELSE 0 END) as revoked_codes,
-        SUM(CASE WHEN status = 'used' THEN 1 ELSE 0 END) as used_codes,
-        SUM(current_uses) as total_activations
+        SUM(CASE WHEN status = 'used' THEN 1 ELSE 0 END) as used_codes
       FROM activation_codes
     `);
-    
-    // 使用记录统计
+
+    // 激活记录统计
     const [recordStats] = await pool.query(`
-      SELECT 
-        COUNT(*) as total_records,
-        SUM(usage_count) as total_usage_count
+      SELECT
+        COUNT(*) as total_records
       FROM activation_records
     `);
-    
+
+    // 计算总使用次数 (从 usage_by_date JSON 字段统计)
+    const [allRecords] = await pool.query('SELECT usage_by_date FROM activation_records');
+    let totalUsageCount = 0;
+    for (const record of allRecords) {
+      const usageByDate = JSON.parse(record.usage_by_date || '{}');
+      for (const date in usageByDate) {
+        totalUsageCount += usageByDate[date];
+      }
+    }
+
+    // 计算今日使用次数
+    const today = new Date().toISOString().split('T')[0];
+    let todayUsageCount = 0;
+    for (const record of allRecords) {
+      const usageByDate = JSON.parse(record.usage_by_date || '{}');
+      todayUsageCount += (usageByDate[today] || 0);
+    }
+
     // 按激活码统计
-    const [byCodeStats] = await pool.query(`
-      SELECT 
+    const [codes] = await pool.query(`
+      SELECT
+        ac.id,
         ac.code,
         ac.status,
-        ac.current_uses,
         ac.max_uses,
-        COUNT(ar.id) as total_activations,
-        SUM(ar.usage_count) as total_usages
+        ac.daily_limit,
+        ac.validity_days,
+        ac.notes
       FROM activation_codes ac
-      LEFT JOIN activation_records ar ON ac.id = ar.code_id
-      GROUP BY ac.id, ac.code, ac.status, ac.current_uses, ac.max_uses
-      ORDER BY total_usages DESC
+      ORDER BY ac.created_at DESC
       LIMIT 20
     `);
-    
+
+    // 为每个激活码计算详细统计
+    const byCodeStats = await Promise.all(codes.map(async (code) => {
+      const [records] = await pool.query(
+        'SELECT usage_by_date, expires_at FROM activation_records WHERE code_id = ?',
+        [code.id]
+      );
+
+      // 计算总使用次数
+      let totalUsages = 0;
+      let todayUsed = 0;
+      let earliestExpiresAt = null;
+
+      for (const rec of records) {
+        const usageByDate = JSON.parse(rec.usage_by_date || '{}');
+
+        // 累计所有日期的使用次数
+        for (const date in usageByDate) {
+          totalUsages += usageByDate[date];
+        }
+
+        // 今日使用次数
+        todayUsed += (usageByDate[today] || 0);
+
+        // 找到最早的过期时间
+        if (rec.expires_at) {
+          const expiresAt = new Date(rec.expires_at);
+          if (!earliestExpiresAt || expiresAt < earliestExpiresAt) {
+            earliestExpiresAt = expiresAt;
+          }
+        }
+      }
+
+      // 计算剩余时间
+      let timeRemaining = null;
+      if (earliestExpiresAt) {
+        const msLeft = earliestExpiresAt.getTime() - Date.now();
+        if (msLeft > 0) {
+          const days = Math.floor(msLeft / (24 * 60 * 60 * 1000));
+          const hours = Math.floor((msLeft % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+          const minutes = Math.floor((msLeft % (60 * 60 * 1000)) / (60 * 1000));
+          timeRemaining = `${days}天${hours}小时${minutes}分钟`;
+        } else {
+          timeRemaining = '已过期';
+        }
+      }
+
+      return {
+        code: code.code,
+        status: code.status,
+        max_uses: code.max_uses,
+        daily_limit: code.daily_limit,
+        validity_days: code.validity_days,
+        activated_devices: records.length,  // 已激活设备数
+        total_usages: totalUsages,          // 总使用次数
+        today_used: todayUsed,              // 今日使用次数
+        time_remaining: timeRemaining,      // 剩余时间
+        notes: code.notes
+      };
+    }));
+
     return {
       success: true,
       data: {
-        ...codeStats[0],
-        ...recordStats[0],
+        total_codes: codeStats[0].total_codes || 0,
+        active_codes: codeStats[0].active_codes || 0,
+        expired_codes: codeStats[0].expired_codes || 0,
+        revoked_codes: codeStats[0].revoked_codes || 0,
+        used_codes: codeStats[0].used_codes || 0,
+        total_records: recordStats[0].total_records || 0,
+        total_usage_count: totalUsageCount,
+        today_usage_count: todayUsageCount,
         byCode: byCodeStats
       }
     };
-    
+
   } catch (error) {
     console.error('获取统计失败:', error);
     return { success: false, error: error.message };
