@@ -9,7 +9,7 @@
 const AI_CONFIG = {
   apiKey: 'sk-neZiqN36Qh4HbF7WB3633aC322844cB09c5474D64d5fA657',
   apiUrl: 'https://dpapi.cn/v1/chat/completions',
-  model: 'claude-4.5-sonnet',
+  model: 'gpt-4o-mini',  // 尝试使用 GPT-4o-mini，通常更便宜
   timeout: 30000
 };
 

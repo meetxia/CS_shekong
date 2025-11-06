@@ -119,33 +119,57 @@ const handleStart = async () => {
         saveActivation(activationCode.value)
       }
 
-      console.log('✅ [激活成功] 开始扣除一次使用次数...')
+      console.log('✅ [激活成功]')
 
-      // 🔧 【关键修改】激活成功后立即扣除一次使用次数
-      const usageResult = await recordOneUsage()
+      // 🔧 【修复重复扣次数问题】
+      // 检查是否有旧报告，如果有则不在这里扣次数
+      // 而是跳转到测评页面，让用户确认后再扣次数
+      const hasCompletedReport = localStorage.getItem('test_report')
 
-      if (!usageResult || !usageResult.recorded) {
-        // 扣除次数失败
-        const errorMsg = usageResult?.error || '无法开始测评'
-        error.value = errorMsg
-        showToast(errorMsg, 2500, 'error')
-        loading.value = false
-        return
+      if (hasCompletedReport) {
+        // 有旧报告，直接跳转到测评页面，让测评页面处理扣次数逻辑
+        console.log('📋 [激活成功] 检测到旧报告，跳转到测评页面让用户确认')
+
+        // 成功提示（不显示剩余次数，因为还没扣）
+        const successMsg = `激活成功！`
+        showToast(successMsg, 1500, 'success')
+
+        // 触发导航栏等处的激活状态刷新（无需刷新整页）
+        try { window.dispatchEvent(new Event('activation-updated')) } catch {}
+
+        // 延迟跳转以显示成功提示
+        setTimeout(() => {
+          router.push('/assessment')
+        }, 1500)
+      } else {
+        // 没有旧报告，正常扣次数
+        console.log('✅ [激活成功] 没有旧报告，开始扣除一次使用次数...')
+
+        const usageResult = await recordOneUsage()
+
+        if (!usageResult || !usageResult.recorded) {
+          // 扣除次数失败
+          const errorMsg = usageResult?.error || '无法开始测评'
+          error.value = errorMsg
+          showToast(errorMsg, 2500, 'error')
+          loading.value = false
+          return
+        }
+
+        console.log(`✅ [扣次数成功] 今日剩余 ${usageResult.remainingToday} 次，有效期剩余 ${usageResult.daysLeft} 天`)
+
+        // 成功提示（包含剩余次数信息）
+        const successMsg = `激活成功！今日剩余 ${usageResult.remainingToday} 次 · 剩余 ${usageResult.daysLeft} 天`
+        showToast(successMsg, 2000, 'success')
+
+        // 触发导航栏等处的激活状态刷新（无需刷新整页）
+        try { window.dispatchEvent(new Event('activation-updated')) } catch {}
+
+        // 延迟跳转以显示成功提示
+        setTimeout(() => {
+          router.push('/assessment')
+        }, 2000)
       }
-
-      console.log(`✅ [扣次数成功] 今日剩余 ${usageResult.remainingToday} 次，有效期剩余 ${usageResult.daysLeft} 天`)
-
-      // 成功提示（包含剩余次数信息）
-      const successMsg = `激活成功！今日剩余 ${usageResult.remainingToday} 次 · 剩余 ${usageResult.daysLeft} 天`
-      showToast(successMsg, 2000, 'success')
-
-      // 触发导航栏等处的激活状态刷新（无需刷新整页）
-      try { window.dispatchEvent(new Event('activation-updated')) } catch {}
-
-      // 延迟跳转以显示成功提示
-      setTimeout(() => {
-        router.push('/assessment')
-      }, 2000)
     } else {
       // 智能错误提示
       const errorType = result.error || 'UNKNOWN'

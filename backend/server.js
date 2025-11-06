@@ -12,6 +12,7 @@ const adminRouter = require('./routes/adminRoutes');
 const activationRouter = require('./routes/activationRoutes');
 const aiRouter = require('./routes/aiRoutes');
 const statsRouter = require('./routes/statsRoutes');
+const aiConfigRouter = require('./routes/aiConfigRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -45,6 +46,7 @@ app.get('/health', (req, res) => {
 // ============================================
 app.use('/api/admin', authRouter);      // 管理员认证路由: /api/admin/login, /api/admin/logout 等
 app.use('/api/admin', adminRouter);     // 管理后台路由: /api/admin/codes, /api/admin/stats 等
+app.use('/api/admin/ai-config', aiConfigRouter); // AI配置管理路由
 app.use('/api/activation', activationRouter); // 激活码验证路由
 app.use('/api/ai', aiRouter);           // AI分析路由
 app.use('/api/stats', statsRouter);     // 统计数据路由

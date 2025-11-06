@@ -73,6 +73,12 @@ const routes = [
         name: 'AdminCodes',
         component: () => import('../views/admin/AdminCodes.vue'),
         meta: { title: '激活码管理', requiresAuth: true }
+      },
+      {
+        path: 'ai-config',
+        name: 'AdminAIConfig',
+        component: () => import('../views/admin/AdminAIConfig.vue'),
+        meta: { title: 'AI配置', requiresAuth: true }
       }
     ]
   }

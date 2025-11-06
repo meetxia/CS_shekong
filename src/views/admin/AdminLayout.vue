@@ -20,6 +20,9 @@
         <router-link class="admin-link" :to="{ name: 'AdminCodes' }">
           <span>🎫 激活码管理</span>
         </router-link>
+        <router-link class="admin-link" :to="{ name: 'AdminAIConfig' }">
+          <span>🤖 AI配置</span>
+        </router-link>
       </nav>
     </aside>
 
@@ -44,7 +47,11 @@
         </router-link>
         <router-link class="mobile-nav-item" :to="{ name: 'AdminCodes' }">
           <span class="nav-icon">🎫</span>
-          <span class="nav-text">激活码管理</span>
+          <span class="nav-text">激活码</span>
+        </router-link>
+        <router-link class="mobile-nav-item" :to="{ name: 'AdminAIConfig' }">
+          <span class="nav-icon">🤖</span>
+          <span class="nav-text">AI配置</span>
         </router-link>
       </nav>
     </header>
