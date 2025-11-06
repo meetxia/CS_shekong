@@ -32,8 +32,19 @@
       <button class="btn-refresh" @click="reload" title="刷新列表">
         🔄 刷新
       </button>
+      <button class="btn-batch-history" @click="openBatchHistory" title="查看批次历史">
+        📋 批次历史
+        <span v-if="batchHistory.length > 0" class="badge">{{ batchHistory.length }}</span>
+      </button>
+      <button class="btn-batch-filter" @click="openBatchFilter" title="按批次筛选">
+        🔍 批次筛选
+        <span v-if="currentBatchFilter" class="badge-active">已筛选</span>
+      </button>
       <button v-if="selectedCodes.length > 0" class="btn-export" @click="exportSelected" title="导出选中的激活码">
         📥 导出选中 ({{ selectedCodes.length }})
+      </button>
+      <button v-if="selectedCodes.length > 0" class="btn-delete-selected" @click="deleteSelected" title="删除选中的激活码">
+        🗑️ 删除选中 ({{ selectedCodes.length }})
       </button>
     </div>
 
@@ -203,6 +214,14 @@
       <button class="btn-pager" @click="next" :disabled="page>=totalPages">
         下一页 →
       </button>
+      <div class="page-size-selector">
+        <label class="page-size-label">每页显示：</label>
+        <select class="page-size-select" v-model.number="pageSize" @change="changePageSize">
+          <option :value="20">20 条</option>
+          <option :value="50">50 条</option>
+          <option :value="100">100 条</option>
+        </select>
+      </div>
     </div>
 
     <!-- 新建/编辑激活码弹窗 -->
@@ -480,6 +499,143 @@
       </div>
     </div>
 
+    <!-- 批次筛选对话框 -->
+    <div v-if="showBatchFilter" class="modal" @click.self="closeBatchFilter">
+      <div class="modal-container batch-filter-dialog">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span class="modal-icon">🔍</span>
+            <h3>按批次筛选</h3>
+          </div>
+          <button class="modal-close" @click="closeBatchFilter">✕</button>
+        </div>
+
+        <div class="modal-content">
+          <div v-if="currentBatchFilter" class="current-filter-info">
+            <div class="filter-badge">
+              <span class="filter-icon">✓</span>
+              <span class="filter-text">当前已筛选批次</span>
+            </div>
+            <button class="btn-clear-filter" @click="clearBatchFilter">
+              <span class="clear-icon">✕</span>
+              <span>清除筛选</span>
+            </button>
+          </div>
+
+          <div v-if="batchHistory.length === 0" class="empty-state-batch">
+            <div class="empty-icon">📭</div>
+            <p class="empty-text">暂无批次记录</p>
+            <p class="empty-hint">批量新建激活码后会自动记录</p>
+          </div>
+
+          <div v-else class="batch-filter-list">
+            <div
+              v-for="batch in batchHistory"
+              :key="batch.id"
+              class="batch-filter-item"
+              :class="{ 'active': currentBatchFilter === batch.id }"
+              @click="applyBatchFilter(batch.id)"
+            >
+              <div class="filter-item-header">
+                <div class="filter-item-info">
+                  <div class="filter-item-title">
+                    <span class="batch-icon">📦</span>
+                    <span class="batch-name">批次 #{{ batch.id.toString().slice(-6) }}</span>
+                    <span v-if="currentBatchFilter === batch.id" class="active-badge">当前筛选</span>
+                  </div>
+                  <div class="filter-item-meta">
+                    <span class="batch-time">{{ formatBatchTime(batch.timestamp) }}</span>
+                    <span class="batch-separator">•</span>
+                    <span class="batch-count">{{ batch.count }} 个激活码</span>
+                  </div>
+                </div>
+                <div class="filter-item-arrow">›</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-cancel" @click="closeBatchFilter">
+            <span>取消</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 批次历史对话框 -->
+    <div v-if="showBatchHistory" class="modal" @click.self="closeBatchHistory">
+      <div class="modal-container batch-history-dialog">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span class="modal-icon">📋</span>
+            <h3>批次历史</h3>
+          </div>
+          <button class="modal-close" @click="closeBatchHistory">✕</button>
+        </div>
+
+        <div class="modal-content">
+          <div v-if="batchHistory.length === 0" class="empty-state-batch">
+            <div class="empty-icon">📭</div>
+            <p class="empty-text">暂无批次记录</p>
+            <p class="empty-hint">批量新建激活码后会自动记录</p>
+          </div>
+
+          <div v-else class="batch-list">
+            <div v-for="batch in batchHistory" :key="batch.id" class="batch-item">
+              <div class="batch-header">
+                <div class="batch-info">
+                  <div class="batch-title">
+                    <span class="batch-icon">📦</span>
+                    <span class="batch-name">批次 #{{ batch.id.toString().slice(-6) }}</span>
+                  </div>
+                  <div class="batch-meta">
+                    <span class="batch-time">{{ formatBatchTime(batch.timestamp) }}</span>
+                    <span class="batch-separator">•</span>
+                    <span class="batch-count">{{ batch.count }} 个激活码</span>
+                  </div>
+                </div>
+                <div class="batch-actions">
+                  <button class="btn-batch-action btn-export-batch" @click="exportBatch(batch)" title="导出此批次">
+                    <span class="action-icon">📥</span>
+                    <span class="action-text">导出</span>
+                  </button>
+                  <button class="btn-batch-action btn-delete-batch" @click="deleteBatch(batch.id)" title="删除记录">
+                    <span class="action-icon">🗑️</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="batch-details">
+                <div class="detail-item">
+                  <span class="detail-label">最大使用次数:</span>
+                  <span class="detail-value">{{ batch.params.max_uses }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">有效天数:</span>
+                  <span class="detail-value">{{ batch.params.validity_days }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">每日上限:</span>
+                  <span class="detail-value">{{ batch.params.daily_limit }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">创建时间:</span>
+                  <span class="detail-value">{{ batch.createdAt }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-cancel" @click="closeBatchHistory">
+            <span>关闭</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 导出对话框 -->
     <div v-if="showExportDialog" class="modal" @click.self="closeExportDialog">
       <div class="modal-container export-dialog">
@@ -581,10 +737,57 @@ const showExportDialog = ref(false)
 const exportCodes = ref([])
 const exportFormat = ref('txt')
 const selectedCodes = ref([])
+const batchHistory = ref([]) // 批次历史记录
+const showBatchHistory = ref(false) // 显示批次历史对话框
+const showBatchFilter = ref(false) // 显示批次筛选对话框
+const currentBatchFilter = ref(null) // 当前筛选的批次ID
 
 const isAllSelected = computed(() => {
   return list.value.length > 0 && selectedCodes.value.length === list.value.length
 })
+
+// 从 localStorage 加载批次历史
+function loadBatchHistory() {
+  try {
+    const saved = localStorage.getItem('activation_code_batches')
+    if (saved) {
+      batchHistory.value = JSON.parse(saved)
+      // 只保留最近180天的记录
+      const thirtyDaysAgo = Date.now() - 180 * 24 * 60 * 60 * 1000
+      batchHistory.value = batchHistory.value.filter(b => b.timestamp > thirtyDaysAgo)
+    }
+  } catch (e) {
+    console.error('加载批次历史失败:', e)
+    batchHistory.value = []
+  }
+}
+
+// 保存批次历史
+function saveBatchHistory() {
+  try {
+    localStorage.setItem('activation_code_batches', JSON.stringify(batchHistory.value))
+  } catch (e) {
+    console.error('保存批次历史失败:', e)
+  }
+}
+
+// 添加新批次
+function addBatchToHistory(codes, params) {
+  const batch = {
+    id: Date.now(),
+    timestamp: Date.now(),
+    count: codes.length,
+    codes: codes,
+    params: params,
+    createdAt: new Date().toLocaleString('zh-CN')
+  }
+  batchHistory.value.unshift(batch)
+  // 只保留最近50个批次
+  if (batchHistory.value.length > 50) {
+    batchHistory.value = batchHistory.value.slice(0, 50)
+  }
+  saveBatchHistory()
+}
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
 
@@ -594,16 +797,39 @@ const codesCount = computed(() => {
   return lines.length
 })
 
-onMounted(reload)
+onMounted(() => {
+  reload()
+  loadBatchHistory()
+})
 
 async function reload() {
   const res = await listActivationCodes({ page: page.value, pageSize: pageSize.value, status: status.value, q: q.value })
-  list.value = res.list
-  total.value = res.total
+
+  // 如果有批次筛选，过滤结果
+  if (currentBatchFilter.value) {
+    const batch = batchHistory.value.find(b => b.id === currentBatchFilter.value)
+    if (batch) {
+      const batchCodes = new Set(batch.codes)
+      list.value = res.list.filter(item => batchCodes.has(item.code))
+      total.value = list.value.length
+    } else {
+      list.value = res.list
+      total.value = res.total
+    }
+  } else {
+    list.value = res.list
+    total.value = res.total
+  }
 }
 
 function prev() { if (page.value > 1) { page.value--; reload() } }
 function next() { if (page.value < totalPages.value) { page.value++; reload() } }
+
+// 改变每页显示数量
+function changePageSize() {
+  page.value = 1 // 重置到第一页
+  reload()
+}
 
 function openCreate() {
   editing.value = false
@@ -725,7 +951,12 @@ async function saveBatch() {
         )
         exportCodes.value = successCodes
 
-        // 3秒后提示导出
+        // 记录到批次历史
+        if (successCodes.length > 0) {
+          addBatchToHistory(successCodes, batchDefaults.value)
+        }
+
+        // 2秒后提示导出
         setTimeout(() => {
           showBatch.value = false
           if (successCodes.length > 0) {
@@ -739,6 +970,10 @@ async function saveBatch() {
     } else {
       // 全部成功
       exportCodes.value = lines
+
+      // 记录到批次历史
+      addBatchToHistory(lines, batchDefaults.value)
+
       showBatch.value = false
       showExportDialog.value = true
       await reload()
@@ -815,6 +1050,119 @@ function exportSelected() {
   }
   exportCodes.value = selectedCodes.value
   showExportDialog.value = true
+}
+
+// 打开批次历史
+function openBatchHistory() {
+  showBatchHistory.value = true
+}
+
+// 关闭批次历史
+function closeBatchHistory() {
+  showBatchHistory.value = false
+}
+
+// 导出指定批次
+function exportBatch(batch) {
+  exportCodes.value = batch.codes
+  batchDefaults.value = batch.params
+  showBatchHistory.value = false
+  showExportDialog.value = true
+}
+
+// 删除批次
+function deleteBatch(batchId) {
+  if (confirm('确定要删除这个批次记录吗？（不会删除已创建的激活码）')) {
+    batchHistory.value = batchHistory.value.filter(b => b.id !== batchId)
+    saveBatchHistory()
+  }
+}
+
+// 格式化时间
+function formatBatchTime(timestamp) {
+  const now = Date.now()
+  const diff = now - timestamp
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  if (days < 7) return `${days}天前`
+  return new Date(timestamp).toLocaleDateString('zh-CN')
+}
+
+// 批量删除选中的激活码
+async function deleteSelected() {
+  if (selectedCodes.value.length === 0) {
+    alert('请先选择要删除的激活码')
+    return
+  }
+
+  const count = selectedCodes.value.length
+  if (!confirm(`确定要删除选中的 ${count} 个激活码吗？此操作不可恢复！`)) {
+    return
+  }
+
+  try {
+    // 逐个删除
+    let successCount = 0
+    let failCount = 0
+
+    for (const code of selectedCodes.value) {
+      const item = list.value.find(i => i.code === code)
+      if (item) {
+        try {
+          await adminDeleteCode(item.id)
+          successCount++
+        } catch (e) {
+          console.error(`删除激活码 ${code} 失败:`, e)
+          failCount++
+        }
+      }
+    }
+
+    // 清空选择
+    selectedCodes.value = []
+
+    // 刷新列表
+    await reload()
+
+    if (failCount > 0) {
+      alert(`删除完成：成功 ${successCount} 个，失败 ${failCount} 个`)
+    } else {
+      alert(`成功删除 ${successCount} 个激活码`)
+    }
+  } catch (e) {
+    alert('批量删除失败：' + (e?.message || '未知错误'))
+  }
+}
+
+// 打开批次筛选对话框
+function openBatchFilter() {
+  showBatchFilter.value = true
+}
+
+// 关闭批次筛选对话框
+function closeBatchFilter() {
+  showBatchFilter.value = false
+}
+
+// 应用批次筛选
+function applyBatchFilter(batchId) {
+  currentBatchFilter.value = batchId
+  showBatchFilter.value = false
+  page.value = 1
+  reload()
+}
+
+// 清除批次筛选
+function clearBatchFilter() {
+  currentBatchFilter.value = null
+  showBatchFilter.value = false
+  page.value = 1
+  reload()
 }
 
 function openEdit(item) {
@@ -1178,6 +1526,111 @@ function getTodayUsageClass(used, limit) {
   transform: translateY(0);
 }
 
+.btn-batch-history {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-batch-history:hover {
+  background: var(--bg-section);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.btn-batch-history .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--primary);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 9px;
+  line-height: 1;
+}
+
+.btn-batch-filter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-batch-filter:hover {
+  background: var(--bg-section);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.btn-batch-filter .badge-active {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  background: #10b981;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.btn-delete-selected {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.btn-delete-selected:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.btn-delete-selected:active {
+  transform: translateY(0);
+}
+
 /* ========== 表格样式 ========== */
 .table-wrapper {
   overflow-x: auto;
@@ -1428,6 +1881,43 @@ function getTodayUsageClass(used, limit) {
 .page-count {
   color: var(--text-secondary);
   font-size: 12px;
+}
+
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-size-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.page-size-select {
+  height: 36px;
+  padding: 0 12px;
+  border: var(--admin-border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.page-size-select:hover {
+  border-color: var(--primary);
+  background: var(--bg-section);
+}
+
+.page-size-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 /* ========== 现代化弹窗样式 ========== */
@@ -2081,6 +2571,327 @@ function getTodayUsageClass(used, limit) {
   color: var(--text-secondary);
 }
 
+/* ========== 批次历史对话框样式 ========== */
+.batch-history-dialog {
+  max-width: 700px;
+  max-height: 80vh;
+}
+
+.batch-history-dialog .modal-content {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.empty-state-batch {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-state-batch .empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.empty-state-batch .empty-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.empty-state-batch .empty-hint {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.batch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.batch-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+
+.batch-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.batch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.batch-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.batch-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.batch-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.batch-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.batch-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.batch-separator {
+  color: var(--border);
+}
+
+.batch-count {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.batch-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-batch-action {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-export-batch {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.btn-export-batch:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+}
+
+.btn-delete-batch {
+  background: var(--bg-section);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 8px;
+}
+
+.btn-delete-batch:hover {
+  background: #fee;
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.action-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.batch-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-section);
+  border-radius: 8px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ========== 批次筛选对话框样式 ========== */
+.batch-filter-dialog {
+  max-width: 600px;
+  max-height: 80vh;
+}
+
+.batch-filter-dialog .modal-content {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.current-filter-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #10b98115 0%, #05966915 100%);
+  border: 1px solid #10b981;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.filter-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #059669;
+}
+
+.filter-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #10b981;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.btn-clear-filter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid #dc2626;
+  border-radius: 6px;
+  background: white;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear-filter:hover {
+  background: #dc2626;
+  color: white;
+}
+
+.clear-icon {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.batch-filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.batch-filter-item {
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.batch-filter-item:hover {
+  border-color: var(--primary);
+  background: var(--bg-section);
+  transform: translateX(4px);
+}
+
+.batch-filter-item.active {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #10b98110 0%, #05966910 100%);
+}
+
+.filter-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-item-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.active-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #10b981;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.filter-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.filter-item-arrow {
+  font-size: 24px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.batch-filter-item:hover .filter-item-arrow {
+  color: var(--primary);
+  transform: translateX(4px);
+}
+
 /* ========== 移动端卡片样式 ========== */
 .mobile-cards {
   display: none;
@@ -2347,21 +3158,43 @@ function getTodayUsageClass(used, limit) {
     flex-wrap: wrap;
     gap: 8px;
     padding: 10px;
+    justify-content: center;
   }
 
   .btn-pager {
     height: 40px;
     padding: 0 12px;
     font-size: 13px;
+    flex: 1;
+    min-width: 100px;
   }
 
   .page-info {
     font-size: 12px;
     gap: 6px;
+    width: 100%;
+    justify-content: center;
+    order: -1;
   }
 
   .page-count {
     display: none;
+  }
+
+  .page-size-selector {
+    width: 100%;
+    justify-content: center;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .page-size-label {
+    font-size: 12px;
+  }
+
+  .page-size-select {
+    height: 36px;
+    font-size: 13px;
   }
 
   /* 弹窗优化 */
@@ -2431,6 +3264,81 @@ function getTodayUsageClass(used, limit) {
 
   .form-field-half .field-description {
     font-size: 10px;
+  }
+
+  /* 批次历史对话框优化 */
+  .batch-history-dialog {
+    max-width: 100%;
+    max-height: 100vh;
+  }
+
+  .batch-history-dialog .modal-content {
+    max-height: calc(100vh - 200px);
+  }
+
+  .batch-item {
+    padding: 14px;
+  }
+
+  .batch-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .batch-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .btn-batch-action {
+    flex: 1;
+  }
+
+  .batch-details {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .btn-batch-history {
+    width: 100%;
+  }
+
+  .btn-batch-filter {
+    width: 100%;
+  }
+
+  .btn-export {
+    width: 100%;
+  }
+
+  .btn-delete-selected {
+    width: 100%;
+  }
+
+  /* 批次筛选对话框优化 */
+  .batch-filter-dialog {
+    max-width: 100%;
+    max-height: 100vh;
+  }
+
+  .batch-filter-dialog .modal-content {
+    max-height: calc(100vh - 200px);
+  }
+
+  .current-filter-info {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .btn-clear-filter {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .batch-filter-item {
+    padding: 12px;
   }
 }
 
@@ -2699,6 +3607,27 @@ function getTodayUsageClass(used, limit) {
 
   .error-text {
     font-size: 13px;
+  }
+
+  /* 分页优化 */
+  .btn-pager {
+    font-size: 12px;
+    padding: 0 10px;
+    min-width: 90px;
+  }
+
+  .page-info {
+    font-size: 11px;
+  }
+
+  .page-size-label {
+    font-size: 11px;
+  }
+
+  .page-size-select {
+    height: 34px;
+    font-size: 12px;
+    padding: 0 8px;
   }
 }
 

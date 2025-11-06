@@ -425,27 +425,65 @@ const openShareActivation = () => {
   modal.innerHTML = `
     <div class="modal-overlay"></div>
     <div class="modal-content">
-      <div class="modal-header"><h3>分享给好友</h3><button class="close-btn">×</button></div>
+      <div class="modal-header">
+        <h3>✨ 分享给好友</h3>
+        <button class="close-btn">×</button>
+      </div>
       <div class="modal-body">
         <div class="share-activation">
-          <div class="row"><span class="label">激活码</span><input class="copy-input" value="${code}" readonly /></div>
-          <div class="row"><span class="label">专属链接</span><input class="copy-input" value="${link}" readonly /></div>
-          <div class="tips text-secondary">说明：同一激活码每日最多3次，总有效期7天</div>
+          <div class="row">
+            <span class="label">激活码</span>
+            <input class="copy-input" value="${code}" readonly />
+          </div>
+          <div class="row">
+            <span class="label">专属链接</span>
+            <input class="copy-input" value="${link}" readonly />
+          </div>
+          <div class="tips">同一激活码每日最多3次，总有效期7天</div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" id="copyCode">复制激活码</button>
-        <button class="btn-primary" id="copyLink">复制链接</button>
+        <button class="btn-secondary" id="copyCode">📋 复制激活码</button>
+        <button class="btn-primary" id="copyLink">🔗 复制链接</button>
       </div>
     </div>
   `
   document.body.appendChild(modal)
-  const copy = (text) => navigator.clipboard?.writeText(text)
-  modal.querySelector('#copyCode').addEventListener('click', () => copy(code))
-  modal.querySelector('#copyLink').addEventListener('click', () => copy(link))
+
+  // 复制功能增强 - 添加成功提示
+  const copy = async (text, buttonId) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      const button = modal.querySelector(`#${buttonId}`)
+      const originalText = button.textContent
+      button.textContent = '✅ 已复制!'
+      button.style.background = 'linear-gradient(135deg, #52c41a 0%, #73d13d 100%)'
+
+      setTimeout(() => {
+        button.textContent = originalText
+        button.style.background = ''
+      }, 2000)
+    } catch (err) {
+      console.error('复制失败:', err)
+      alert('复制失败,请手动复制')
+    }
+  }
+
+  modal.querySelector('#copyCode').addEventListener('click', () => copy(code, 'copyCode'))
+  modal.querySelector('#copyLink').addEventListener('click', () => copy(link, 'copyLink'))
+
   const close = () => modal.remove()
   modal.querySelector('.close-btn').addEventListener('click', close)
   modal.querySelector('.modal-overlay').addEventListener('click', close)
+
+  // 支持 ESC 键关闭
+  const handleEsc = (e) => {
+    if (e.key === 'Escape') {
+      close()
+      document.removeEventListener('keydown', handleEsc)
+    }
+  }
+  document.addEventListener('keydown', handleEsc)
 }
 
 const renderRadarChart = () => {

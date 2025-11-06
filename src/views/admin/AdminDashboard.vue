@@ -48,7 +48,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in byCode" :key="row.code">
+          <tr v-for="row in paginatedByCode" :key="row.code">
             <td><code class="code-badge">{{ row.code }}</code></td>
             <td>
               <span :class="['status-badge', `status-${row.status}`]">
@@ -78,7 +78,7 @@
             </td>
             <td class="notes-cell">{{ row.notes || '-' }}</td>
           </tr>
-          <tr v-if="!byCode.length">
+          <tr v-if="!paginatedByCode.length">
             <td colspan="7" style="text-align: center; color: #999; padding: 20px;">
               暂无数据
             </td>
@@ -87,11 +87,35 @@
       </table>
     </div>
 
+    <!-- 分页控件 -->
+    <div class="pager">
+      <button class="btn-pager" @click="prev" :disabled="page===1">
+        ← 上一页
+      </button>
+      <div class="page-info">
+        <span class="page-current">第 {{ page }} 页</span>
+        <span class="page-separator">/</span>
+        <span class="page-total">共 {{ totalPages }} 页</span>
+        <span class="page-count">（{{ totalItems }} 条记录）</span>
+      </div>
+      <button class="btn-pager" @click="next" :disabled="page>=totalPages">
+        下一页 →
+      </button>
+      <div class="page-size-selector">
+        <label class="page-size-label">每页显示：</label>
+        <select class="page-size-select" v-model.number="pageSize" @change="changePageSize">
+          <option :value="20">20 条</option>
+          <option :value="50">50 条</option>
+          <option :value="100">100 条</option>
+        </select>
+      </div>
+    </div>
+
     <!-- 移动端卡片列表 -->
     <div class="mobile-code-list">
       <h4 class="text-secondary table-title">按激活码统计</h4>
       <div class="code-stats-cards">
-        <div v-for="row in byCode" :key="row.code" class="code-stat-card">
+        <div v-for="row in paginatedByCode" :key="row.code" class="code-stat-card">
           <div class="card-header">
             <code class="code-badge-mobile">{{ row.code }}</code>
             <span :class="['status-badge-mobile', `status-${row.status}`]">
@@ -128,7 +152,7 @@
             <span class="notes-text">{{ row.notes }}</span>
           </div>
         </div>
-        <div v-if="!byCode.length" class="empty-state">
+        <div v-if="!paginatedByCode.length" class="empty-state">
           <div class="empty-icon">📊</div>
           <div class="empty-text">暂无数据</div>
         </div>
@@ -138,7 +162,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 // 使用本地后端API
 import { fetchActivationStats } from '@/utils/backendActivation'
 
@@ -152,6 +176,27 @@ const overview = ref({
   todayUsageCount: 0
 })
 const byCode = ref([])
+
+// 分页相关
+const page = ref(1)
+const pageSize = ref(20)
+
+// 计算总页数
+const totalPages = computed(() => {
+  return Math.ceil(byCode.value.length / pageSize.value) || 1
+})
+
+// 计算总条数
+const totalItems = computed(() => {
+  return byCode.value.length
+})
+
+// 计算当前页的数据
+const paginatedByCode = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return byCode.value.slice(start, end)
+})
 
 onMounted(async () => {
   try {
@@ -189,6 +234,23 @@ function getTodayUsageClass(used, limit) {
   if (used >= limit) return 'usage-full'
   if (used >= limit * 0.8) return 'usage-high'
   return 'usage-normal'
+}
+
+// 分页控制函数
+function prev() {
+  if (page.value > 1) {
+    page.value--
+  }
+}
+
+function next() {
+  if (page.value < totalPages.value) {
+    page.value++
+  }
+}
+
+function changePageSize() {
+  page.value = 1 // 重置到第一页
 }
 
 // 获取剩余时间的样式类
@@ -314,6 +376,104 @@ function getTimeRemainingClass(timeRemaining) {
   white-space: nowrap;
   color: #666;
   font-size: 13px;
+}
+
+/* ========== 分页样式 ========== */
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--bg-section);
+  border-radius: 8px;
+}
+
+.btn-pager {
+  height: 36px;
+  padding: 0 16px;
+  border: var(--admin-border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-pager:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateX(2px);
+}
+
+.btn-pager:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.page-current {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.page-separator {
+  color: var(--text-secondary);
+}
+
+.page-total {
+  color: var(--text-body);
+}
+
+.page-count {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-size-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.page-size-select {
+  height: 36px;
+  padding: 0 12px;
+  border: var(--admin-border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.page-size-select:hover {
+  border-color: var(--primary);
+  background: var(--bg-section);
+}
+
+.page-size-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 /* 移动端样式 */
@@ -443,6 +603,50 @@ function getTimeRemainingClass(timeRemaining) {
     font-size: 14px;
     color: var(--text-secondary);
   }
+
+  /* 分页优化 */
+  .pager {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    justify-content: center;
+  }
+
+  .btn-pager {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 13px;
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .page-info {
+    font-size: 12px;
+    gap: 6px;
+    width: 100%;
+    justify-content: center;
+    order: -1;
+  }
+
+  .page-count {
+    display: none;
+  }
+
+  .page-size-selector {
+    width: 100%;
+    justify-content: center;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .page-size-label {
+    font-size: 12px;
+  }
+
+  .page-size-select {
+    height: 36px;
+    font-size: 13px;
+  }
 }
 
 @media (max-width: 375px) {
@@ -456,6 +660,27 @@ function getTimeRemainingClass(timeRemaining) {
 
   .stat-item-value {
     font-size: 13px;
+  }
+
+  /* 分页优化 */
+  .btn-pager {
+    font-size: 12px;
+    padding: 0 10px;
+    min-width: 90px;
+  }
+
+  .page-info {
+    font-size: 11px;
+  }
+
+  .page-size-label {
+    font-size: 11px;
+  }
+
+  .page-size-select {
+    height: 34px;
+    font-size: 12px;
+    padding: 0 8px;
   }
 }
 </style>
