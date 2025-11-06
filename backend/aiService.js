@@ -184,28 +184,31 @@ async function generateAIAnalysis(report, answers, basicInfo) {
     console.log(`📡 API地址: ${config.api_url}`);
     console.log(`🤖 模型: ${config.model}`);
 
+    const requestBody = {
+      model: config.model,
+      messages: [
+        {
+          role: 'system',
+          content: '你是一位温暖、善解人意的心理陪伴者，像用户最信任的朋友。你用最通俗易懂、最有温度的语言帮助人们理解自己，从不使用冰冷的专业术语，而是用生活化的比喻和真诚的共情让人感到被理解、被接纳。'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: parseFloat(config.temperature) || 0.7,
+      max_tokens: parseInt(config.max_tokens) || 2000
+    };
+
+    console.log('📤 请求体:', JSON.stringify(requestBody, null, 2));
+
     const response = await fetch(config.api_url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${config.api_key}`
       },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [
-          {
-            role: 'system',
-            content: '你是一位温暖、善解人意的心理陪伴者，像用户最信任的朋友。你用最通俗易懂、最有温度的语言帮助人们理解自己，从不使用冰冷的专业术语，而是用生活化的比喻和真诚的共情让人感到被理解、被接纳。'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: config.temperature || 0.7,
-        max_tokens: config.max_tokens || 2000
-      }),
-      timeout: config.timeout || 30000
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {

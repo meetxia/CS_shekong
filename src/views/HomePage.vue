@@ -24,7 +24,20 @@
             </div>
           </div>
         </div>
-  
+
+        <!-- CTA按钮 -->
+        <button
+          @click="startTest"
+          class="btn-primary btn-start-top fade-in"
+          style="animation-delay: 0.1s; color:black; "
+        >
+          <span class="btn-start-content">
+            <span v-if="hasActivation">继续测评</span>
+            <span v-else>开始专业测评</span>
+            <span class="iconify btn-icon" data-icon="mdi:arrow-right" data-width="20" data-height="20"></span>
+          </span>
+        </button>
+
         <!-- 产品卡片 -->
         <div class="product-card card fade-in" style="animation-delay: 0.1s">
           <div class="card-header-group">
@@ -119,19 +132,6 @@
             </div>
           </div>
         </div>
-
-        <!-- CTA按钮 -->
-        <button
-          @click="startTest"
-          class="btn-primary btn-start fade-in"
-          style="animation-delay: 0.2s"
-        >
-          <span class="btn-start-content">
-            <span v-if="hasActivation">继续测评</span>
-            <span v-else>开始专业测评</span>
-            <span class="iconify btn-icon" data-icon="mdi:arrow-right" data-width="20" data-height="20"></span>
-          </span>
-        </button>
   
         <!-- 测试维度说明 -->
         <div class="dimensions-card card fade-in" style="animation-delay: 0.3s">
@@ -294,7 +294,7 @@
   
   .main-content {
     width: 100%;
-    max-width: 600px;
+    max-width: 700px;
     margin: 0 auto;
     flex: 1;
     position: relative;
@@ -360,6 +360,7 @@
   
   /* 产品卡片 */
   .product-card {
+    text-align: center;
     padding: 28px 24px;
     margin-bottom: 20px;
     position: relative;
@@ -369,6 +370,7 @@
   
   .card-header-group {
     display: flex;
+    text-align: center;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
@@ -436,14 +438,14 @@
     white-space: nowrap;
   }
   
-  /* 特点列表 */
+  /* 特点列表 - 两列布局 */
   .features-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 14px;
     margin-bottom: 24px;
   }
-  
+
   .feature-item {
     display: flex;
     align-items: flex-start;
@@ -453,10 +455,11 @@
     border-radius: 10px;
     transition: all 0.3s ease;
   }
-  
+
   .feature-item:hover {
     background: var(--bg-card);
-    transform: translateX(4px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
   
   .feature-icon-wrapper {
@@ -544,6 +547,7 @@
   
   /* 维度卡片 */
   .dimensions-card {
+    text-align: center;
     padding: 28px 24px;
     margin-bottom: 28px;
     border: 1px solid var(--border);
@@ -657,7 +661,23 @@
     color: var(--primary);
   }
   
-  /* 开始按钮 */
+  /* 开始按钮 - 顶部位置 */
+  .btn-start-top {
+    width: 100%;
+    max-width: 600px;
+    height: 60px;
+    border-radius: 14px;
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 auto 24px auto;
+    display: block;
+    border: none;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  }
+
+  /* 开始按钮 - 卡片内部位置(已移除,保留样式以防其他地方使用) */
   .btn-start {
     width: 100%;
     max-width: 600px;
@@ -673,6 +693,7 @@
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
   }
   
+  .btn-start-top::before,
   .btn-start::before {
     content: '';
     position: absolute;
@@ -683,11 +704,12 @@
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     transition: left 0.6s ease;
   }
-  
+
+  .btn-start-top:hover::before,
   .btn-start:hover::before {
     left: 100%;
   }
-  
+
   .btn-start-content {
     display: flex;
     align-items: center;
@@ -696,15 +718,17 @@
     position: relative;
     z-index: 1;
   }
-  
+
   .btn-icon {
     transition: transform 0.3s ease;
   }
-  
+
+  .btn-start-top:hover:not(:disabled),
   .btn-start:hover:not(:disabled) {
     transform: translateY(-3px);
   }
-  
+
+  .btn-start-top:hover:not(:disabled) .btn-icon,
   .btn-start:hover:not(:disabled) .btn-icon {
     transform: translateX(4px);
   }
@@ -825,11 +849,18 @@
   }
   
   /* 响应式 */
+  @media (max-width: 600px) {
+    /* 小屏幕改为单列 */
+    .features-list {
+      grid-template-columns: 1fr;
+    }
+  }
+
   @media (max-width: 480px) {
     .home-page {
       padding: 15% 16px 24px 16px;
     }
-    
+
     .brand-name {
       font-size: 28px;
     }

@@ -301,56 +301,118 @@ async function fallbackToCanvas(element) {
 }
 
 /**
- * 下载图片
+ * 检测是否为移动端
+ */
+function isMobile() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    || window.innerWidth <= 768;
+}
+
+/**
+ * 下载图片或显示预览
  */
 export function downloadImage(dataUrl, filename = 'social-anxiety-result.png') {
-  const link = document.createElement('a');
-  link.download = filename;
-  link.href = dataUrl;
-  link.click();
+  if (isMobile()) {
+    // 移动端:显示图片预览,用户可以长按保存
+    showImagePreview(dataUrl);
+  } else {
+    // 桌面端:直接下载
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = dataUrl;
+    link.click();
+  }
+}
+
+/**
+ * 显示图片预览(移动端长按保存)
+ */
+function showImagePreview(dataUrl) {
+  // 创建预览弹窗
+  const previewModal = document.createElement('div');
+  previewModal.className = 'image-preview-modal';
+  previewModal.innerHTML = `
+    <div class="image-preview-overlay"></div>
+    <div class="image-preview-content">
+      <div class="image-preview-header">
+        <h3>长按图片保存</h3>
+        <button class="image-preview-close">×</button>
+      </div>
+      <div class="image-preview-body">
+        <img src="${dataUrl}" alt="测评结果" class="preview-image" />
+      </div>
+      <div class="image-preview-footer">
+        <p class="preview-hint">💡 长按图片即可保存到相册</p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(previewModal);
+
+  // 关闭按钮
+  const closePreview = () => previewModal.remove();
+  previewModal.querySelector('.image-preview-close').addEventListener('click', closePreview);
+  previewModal.querySelector('.image-preview-overlay').addEventListener('click', closePreview);
+
+  // 添加动画
+  setTimeout(() => {
+    previewModal.classList.add('active');
+  }, 10);
 }
 
 /**
  * 显示分享卡片弹窗
  */
 export function showShareModal(report) {
+  // 检测移动端
+  if (isMobile()) {
+    // 移动端:显示卡片预览,带切换背景按钮
+    showMobileSharePreview(report);
+    return;
+  }
+
+  // 桌面端:显示设置弹窗
   const modal = document.createElement('div');
-  modal.className = 'share-modal';
+  modal.className = 'share-card-modal';
   modal.innerHTML = `
-    <div class="modal-overlay"></div>
-    <div class="modal-content">
-      <div class="modal-header">
+    <div class="share-card-modal-overlay"></div>
+    <div class="share-card-modal-content">
+      <div class="share-card-modal-header">
         <h3>分享测评结果</h3>
-        <button class="close-btn">×</button>
+        <button class="share-card-close-btn">×</button>
       </div>
-      
-      <div class="modal-body">
-        <div class="modal-settings">
-          <div class="theme-selector">
-            <div class="theme-selector-row">
-              <span class="theme-selector-label">背景:</span>
+
+      <div class="share-card-modal-body">
+        <div class="share-card-settings">
+          <div class="share-card-theme-selector">
+            <div class="share-card-theme-label">
+              <span>背景</span>
             </div>
-            <div class="theme-selector-row">
-              <div class="theme-option active" data-theme="light" title="白色"></div>
-              <div class="theme-option" data-theme="dark" title="黑色"></div>
+            <div class="share-card-theme-options">
+              <div class="share-card-theme-option active" data-theme="light" title="白色背景">
+                <div class="theme-preview-light"></div>
+              </div>
+              <div class="share-card-theme-option" data-theme="dark" title="深色背景">
+                <div class="theme-preview-dark"></div>
+              </div>
             </div>
           </div>
         </div>
-        
-        <div class="card-preview-wrapper">
-          <div class="card-preview" id="cardPreview">
+
+        <div class="share-card-preview-wrapper">
+          <div class="share-card-preview" id="cardPreview">
             <!-- 卡片预览 -->
           </div>
         </div>
       </div>
-      
-      <div class="modal-footer">
-        <button class="btn-secondary" id="btnCancel">取消</button>
-        <button class="btn-primary" id="btnDownload">保存图片</button>
+
+      <div class="share-card-modal-footer">
+        <button class="share-card-btn-cancel" id="btnCancel">取消</button>
+        <button class="share-card-btn-download" id="btnDownload">保存图片</button>
       </div>
     </div>
   `;
-  
+
   document.body.appendChild(modal);
   
   // 初始化显示分数卡（直接显示分数卡，不再默认显示类型卡）
@@ -363,12 +425,12 @@ export function showShareModal(report) {
   let currentTheme = 'light';
   
   // 主题切换
-  modal.querySelectorAll('.theme-option').forEach(option => {
+  modal.querySelectorAll('.share-card-theme-option').forEach(option => {
     option.addEventListener('click', (e) => {
-      modal.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
-      e.target.classList.add('active');
-      
-      currentTheme = e.target.dataset.theme;
+      modal.querySelectorAll('.share-card-theme-option').forEach(opt => opt.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+
+      currentTheme = e.currentTarget.dataset.theme;
       const card = preview.querySelector('.share-card');
       if (card) {
         card.setAttribute('data-theme', currentTheme);
@@ -416,9 +478,9 @@ export function showShareModal(report) {
   
   // 关闭按钮
   const closeModal = () => modal.remove();
-  modal.querySelector('.close-btn').addEventListener('click', closeModal);
+  modal.querySelector('.share-card-close-btn').addEventListener('click', closeModal);
   modal.querySelector('#btnCancel').addEventListener('click', closeModal);
-  modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
+  modal.querySelector('.share-card-modal-overlay').addEventListener('click', closeModal);
 }
 
 /**
@@ -578,3 +640,130 @@ function renderRadarForShare(report, cardElement, theme = 'light') {
   });
 }
 
+/**
+ * 移动端分享预览 - 显示卡片图片,带切换背景按钮
+ */
+async function showMobileSharePreview(report) {
+  // 创建加载提示
+  const loadingModal = document.createElement('div');
+  loadingModal.className = 'mobile-share-loading';
+  loadingModal.innerHTML = `
+    <div class="loading-overlay"></div>
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p>正在生成分享图片...</p>
+    </div>
+  `;
+  document.body.appendChild(loadingModal);
+
+  try {
+    // 预生成两种背景的图片
+    const images = {};
+
+    // 生成白底卡片
+    const lightCard = generateScoreCard(report);
+    lightCard.setAttribute('data-theme', 'light');
+    lightCard.style.position = 'absolute';
+    lightCard.style.left = '-9999px';
+    document.body.appendChild(lightCard);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    images.light = await cardToImage(lightCard);
+    document.body.removeChild(lightCard);
+
+    // 生成黑底卡片
+    const darkCard = generateScoreCard(report);
+    darkCard.setAttribute('data-theme', 'dark');
+    darkCard.style.position = 'absolute';
+    darkCard.style.left = '-9999px';
+    document.body.appendChild(darkCard);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    images.dark = await cardToImage(darkCard);
+    document.body.removeChild(darkCard);
+
+    // 移除加载提示
+    loadingModal.remove();
+
+    // 显示图片预览,带切换按钮
+    showMobileImageWithThemeSwitch(images);
+
+  } catch (error) {
+    console.error('生成图片失败:', error);
+    loadingModal.remove();
+    alert('生成图片失败,请重试');
+  }
+}
+
+/**
+ * 显示移动端图片预览,带切换背景按钮
+ */
+function showMobileImageWithThemeSwitch(images) {
+  let currentTheme = 'light'; // 默认显示白底
+
+  const previewModal = document.createElement('div');
+  previewModal.className = 'mobile-image-preview-modal';
+
+  previewModal.innerHTML = `
+    <div class="mobile-preview-overlay"></div>
+    <div class="mobile-preview-content">
+      <div class="mobile-preview-header">
+        <h3>长按图片保存</h3>
+        <button class="mobile-preview-close">×</button>
+      </div>
+
+      <div class="mobile-theme-switch">
+        <button class="theme-switch-btn active" data-theme="light">
+          <span class="theme-icon">☀️</span>
+          <span class="theme-name">白底</span>
+        </button>
+        <button class="theme-switch-btn" data-theme="dark">
+          <span class="theme-icon">🌙</span>
+          <span class="theme-name">黑底</span>
+        </button>
+      </div>
+
+      <div class="mobile-preview-body">
+        <img src="${images.light}" alt="分享卡片" class="mobile-preview-image" id="mobilePreviewImage" />
+      </div>
+
+      <div class="mobile-preview-footer">
+        <p class="preview-hint">💡 长按图片即可保存到相册</p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(previewModal);
+
+  // 切换背景按钮
+  const switchBtns = previewModal.querySelectorAll('.theme-switch-btn');
+  const previewImage = previewModal.querySelector('#mobilePreviewImage');
+
+  switchBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const theme = btn.getAttribute('data-theme');
+      if (theme === currentTheme) return;
+
+      currentTheme = theme;
+
+      // 更新按钮状态
+      switchBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // 切换图片,带淡入淡出效果
+      previewImage.style.opacity = '0';
+      setTimeout(() => {
+        previewImage.src = images[theme];
+        previewImage.style.opacity = '1';
+      }, 200);
+    });
+  });
+
+  // 关闭按钮
+  const closePreview = () => previewModal.remove();
+  previewModal.querySelector('.mobile-preview-close').addEventListener('click', closePreview);
+  previewModal.querySelector('.mobile-preview-overlay').addEventListener('click', closePreview);
+
+  // 添加动画
+  setTimeout(() => {
+    previewModal.classList.add('active');
+  }, 10);
+}

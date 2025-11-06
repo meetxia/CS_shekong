@@ -488,30 +488,25 @@ const openShareActivation = () => {
 
 const renderRadarChart = () => {
   if (!radarChart.value || !report.value) return
-  
+
   if (chartInstance) {
     chartInstance.dispose()
   }
-  
+
   chartInstance = echarts.init(radarChart.value, null, {
     renderer: 'canvas',
-    devicePixelRatio: window.devicePixelRatio || 1,
+    devicePixelRatio: window.devicePixelRatio || 2,  // 提高分辨率
     useDirtyRect: true
   })
-  
-  // 获取当前主题颜色
-  const computedStyle = getComputedStyle(document.documentElement)
-  const primaryColor = computedStyle.getPropertyValue('--primary').trim()
-  const textTitle = computedStyle.getPropertyValue('--text-title').trim()
-  const textSecondary = computedStyle.getPropertyValue('--text-secondary').trim()
-  const borderColorVar = computedStyle.getPropertyValue('--border').trim()
+
+  // 获取当前主题 - 检查body的class
   const isDark = document.body.className.includes('-dark')
 
-  // 雷达图配色方案
-  const gridColor = 'rgba(128,128,128,0.5)'  // 网格线：灰色
-  const radarLineColor = 'rgba(241,105,46,0.9)'  // 雷达线条：深粉色
-  const radarAreaColor = 'rgba(241,104,46,0.5)'  // 雷达填充：浅粉色
-  const labelColor = isDark ? '#FFFFFF' : '#000000'  // 标签文字：深色模式白色，浅色模式黑色
+  // 雷达图配色方案 - 使用固定的高对比度颜色
+  const gridColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)'  // 网格线
+  const radarLineColor = isDark ? 'rgba(255,180,150,0.95)' : 'rgba(241,105,46,0.95)'  // 雷达线条
+  const radarAreaColor = isDark ? 'rgba(255,180,150,0.3)' : 'rgba(241,104,46,0.35)'  // 雷达填充
+  const labelColor = isDark ? '#FFFFFF' : '#000000'  // 标签文字
   
   // 准备雷达图数据
   const indicatorData = report.value.dimensions.map(dim => ({
@@ -531,26 +526,28 @@ const renderRadarChart = () => {
         textStyle: {
           color: labelColor,
           fontSize: 15,
-          fontWeight: 600
+          fontWeight: 600  // 保持适中的字体粗细
         }
       },
       splitLine: {
         lineStyle: {
           color: gridColor,
           type: 'solid',
-          width: 1.2
+          width: 2  // 增加网格线宽度，从1.2提升到2
         }
       },
       splitArea: {
         show: true,
         areaStyle: {
-          color: ['rgba(255,192,203,0.05)', 'rgba(255,192,203,0.1)']
+          color: isDark
+            ? ['rgba(255,192,203,0.03)', 'rgba(255,192,203,0.06)']  // 深色模式用淡粉色
+            : ['rgba(241,105,46,0.02)', 'rgba(241,105,46,0.04)']  // 浅色模式用淡橙色
         }
       },
       axisLine: {
         lineStyle: {
           color: gridColor,
-          width: 1
+          width: 2  // 增加轴线宽度，从1提升到2
         }
       }
     },
@@ -578,28 +575,24 @@ const renderRadarChart = () => {
         name: '你的数据',
         areaStyle: {
           color: radarAreaColor,
-          opacity: 0.7
+          opacity: 0.6  // 适中的填充透明度
         },
         lineStyle: {
           color: radarLineColor,
-          width: 4,
-          shadowColor: 'rgba(255,105,180,0.3)',
-          shadowBlur: 6
+          width: 3  // 适中的线条宽度
         },
         itemStyle: {
           color: radarLineColor,
-          borderColor: '#fff',
-          borderWidth: 3,
-          shadowColor: 'rgba(255,105,180,0.4)',
-          shadowBlur: 8
+          borderColor: isDark ? '#000' : '#fff',  // 简单的边框
+          borderWidth: 2  // 适中的边框宽度
         },
-        symbolSize: 8,
+        symbolSize: 8,  // 适中的数据点尺寸
         emphasis: {
           lineStyle: {
-            width: 5
+            width: 4  // 鼠标悬停时稍微加粗
           },
           itemStyle: {
-            shadowBlur: 15
+            borderWidth: 3  // 鼠标悬停时边框稍微加粗
           }
         }
       }]
@@ -613,24 +606,12 @@ const renderRadarChart = () => {
   window.addEventListener('resize', resizeHandler)
 }
 
-onMounted(async () => {
-  // 默认启用深色模式（若当前不是深色则切换）
-  try {
-    const cls = document.body.className
-    if (!/\-dark/.test(cls)) {
-      if (cls.includes('scheme1-light')) {
-        document.body.className = cls.replace('scheme1-light', 'scheme1-dark')
-      } else if (cls.includes('scheme2-light')) {
-        document.body.className = cls.replace('scheme2-light', 'scheme2-dark')
-      } else if (!/scheme\d\-(dark|light)/.test(cls)) {
-        document.body.classList.add('scheme1-dark')
-      } else {
-        document.body.classList.add('scheme1-dark')
-      }
-      localStorage.setItem('preferred_theme', 'dark')
-    }
-  } catch {}
+// 监听主题切换（通过 body class 变化），自动重绘雷达图
+let themeObserver = null
+let isDataLoaded = false  // 标记数据是否已加载
+let radarRenderTimer = null  // 雷达图渲染定时器
 
+onMounted(async () => {
   // 加载报告数据
   const savedReport = localStorage.getItem('test_report')
   if (savedReport) {
@@ -650,9 +631,18 @@ onMounted(async () => {
         }
       } catch {}
 
-      // 渲染雷达图
+      // 标记数据已加载
+      isDataLoaded = true
+
+      // 渲染雷达图 - 使用requestAnimationFrame确保DOM和CSS完全准备好
       nextTick(() => {
-        renderRadarChart()
+        // 使用requestAnimationFrame确保浏览器完成渲染
+        requestAnimationFrame(() => {
+          // 再延迟一帧，确保CSS变量已经应用
+          requestAnimationFrame(() => {
+            renderRadarChart()
+          })
+        })
       })
     } catch (e) {
       console.error('加载报告失败:', e)
@@ -661,15 +651,21 @@ onMounted(async () => {
   } else {
     router.push('/assessment')
   }
-})
 
-// 监听主题切换（通过 body class 变化），自动重绘雷达图
-let themeObserver = null
-onMounted(() => {
+  // 设置主题监听器 - 只在数据加载后才重绘，并使用防抖避免频繁重绘
   themeObserver = new MutationObserver(() => {
-    nextTick(() => {
-      renderRadarChart()
-    })
+    if (isDataLoaded) {  // 只有数据加载完成后才响应主题切换
+      // 清除之前的定时器，防止重复渲染
+      if (radarRenderTimer) {
+        clearTimeout(radarRenderTimer)
+      }
+      // 延迟渲染，等待CSS变量更新完成
+      radarRenderTimer = setTimeout(() => {
+        nextTick(() => {
+          renderRadarChart()
+        })
+      }, 150)  // 延迟150ms确保主题切换完全完成
+    }
   })
   themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] })
 })

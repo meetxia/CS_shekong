@@ -73,7 +73,7 @@
               <input type="checkbox" :value="item.code" v-model="selectedCodes" />
             </td>
             <td>
-              <code class="code-badge">{{ item.code }}</code>
+              <code class="code-badge code-badge-clickable" @click="copyCode(item.code)" title="点击复制">{{ item.code }}</code>
             </td>
             <td>
               <span :class="['status-badge', `status-${item.status}`]">
@@ -141,7 +141,7 @@
         <!-- 卡片头部 -->
         <div class="card-header-mobile">
           <div class="code-info">
-            <code class="code-badge-mobile">{{ item.code }}</code>
+            <code class="code-badge-mobile code-badge-clickable" @click="copyCode(item.code)" title="点击复制">{{ item.code }}</code>
             <span :class="['status-badge-mobile', `status-${item.status}`]">
               {{ getStatusText(item.status) }}
             </span>
@@ -1285,16 +1285,36 @@ async function remove(item) {
 
 // 简单的Toast提示函数
 function showToast(message, type = 'info') {
-  // 这里可以集成更完善的Toast组件
-  // 暂时使用alert作为fallback
-  if (type === 'error') {
-    alert('❌ ' + message)
-  } else if (type === 'success') {
-    // 成功提示可以不显示alert，因为列表会自动刷新
-    console.log('✅ ' + message)
-  } else {
-    alert('ℹ️ ' + message)
-  }
+  // 创建一个临时的提示元素
+  const toast = document.createElement('div')
+  toast.textContent = message
+  toast.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: ${type === 'error' ? '#dc2626' : type === 'success' ? '#10b981' : '#6366f1'};
+    color: white;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    z-index: 9999;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    animation: toastFadeIn 0.3s ease-out;
+    pointer-events: none;
+  `
+  
+  // 添加到页面
+  document.body.appendChild(toast)
+  
+  // 2秒后移除
+  setTimeout(() => {
+    toast.style.animation = 'toastFadeOut 0.3s ease-out'
+    setTimeout(() => {
+      document.body.removeChild(toast)
+    }, 300)
+  }, 2000)
 }
 
 function normalizePayload(v) {
@@ -1350,6 +1370,39 @@ function getTodayUsageClass(used, limit) {
   if (used >= limit) return 'usage-full'
   if (used >= limit * 0.8) return 'usage-high'
   return 'usage-normal'
+}
+
+// 复制激活码
+function copyCode(code) {
+  // 使用Clipboard API复制到剪贴板
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => {
+      showToast(`✅ 已复制：${code}`, 'success')
+    }).catch(() => {
+      // 降级方案
+      fallbackCopy(code)
+    })
+  } else {
+    // 降级方案（兼容旧浏览器）
+    fallbackCopy(code)
+  }
+}
+
+// 降级复制方法（兼容旧浏览器）
+function fallbackCopy(code) {
+  const textarea = document.createElement('textarea')
+  textarea.value = code
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.select()
+  try {
+    document.execCommand('copy')
+    showToast(`✅ 已复制：${code}`, 'success')
+  } catch (err) {
+    showToast('❌ 复制失败，请手动复制', 'error')
+  }
+  document.body.removeChild(textarea)
 }
 </script>
 
@@ -1649,6 +1702,24 @@ function getTodayUsageClass(used, limit) {
   font-size: 12px;
   color: var(--primary);
   font-weight: 600;
+}
+
+.code-badge-clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.code-badge-clickable:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.code-badge-clickable:active {
+  transform: scale(0.98);
 }
 
 .status-badge {
@@ -2459,6 +2530,29 @@ function getTodayUsageClass(used, limit) {
   }
 }
 
+/* Toast动画 */
+@keyframes toastFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes toastFadeOut {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+}
+
 /* ========== 导出对话框样式 ========== */
 .export-dialog {
   max-width: 500px;
@@ -2942,6 +3036,13 @@ function getTodayUsageClass(used, limit) {
   color: var(--primary);
   letter-spacing: 0.5px;
   align-self: flex-start;
+  transition: all 0.2s ease;
+}
+
+.code-badge-mobile.code-badge-clickable:active {
+  background: var(--primary);
+  color: white;
+  transform: scale(0.95);
 }
 
 .status-badge-mobile {
