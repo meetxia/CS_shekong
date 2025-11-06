@@ -50,7 +50,7 @@ function generateScoreCard(report) {
     </div>
     
     <div class="card-footer">
-      <p class="hint">长按保存图片 · 查看完整报告</p>
+      <p class="hint">长按保存图片</p>
     </div>
   `;
   

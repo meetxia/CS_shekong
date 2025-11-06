@@ -39,7 +39,7 @@ npm install
 ### 启动开发服务器
 
 ```bash
-cd backend
+cd backend ; npm run dev
 npm run dev
 ```
 

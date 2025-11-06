@@ -7,7 +7,7 @@
   --neutral: #C4C0C1;
   
   --bg-main: #F0ECEB;
-  --bg-card: #FFFFFF;
+  --bg-card: #eeecea;
   --bg-card-rgb: 255, 255, 255;
   --bg-section: #F8F6F5;
   
@@ -63,9 +63,7 @@
   color: var(--text-body);
 }
 
-.card {
-  background-color: var(--bg-card);
-}
+
 
 .btn-primary {
   background-color: var(--primary);

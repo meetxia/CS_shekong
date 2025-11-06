@@ -55,15 +55,15 @@
         </button>
 
         <!-- 主题切换按钮 -->
-        <button 
-          @click="toggleTheme" 
-          class="icon-btn" 
+        <button
+          @click="toggleTheme"
+          class="icon-btn"
           :title="isDark() ? '切换到浅色模式' : '切换到深色模式'"
         >
-          <span 
-            class="iconify" 
-            :data-icon="isDark() ? 'mdi:weather-night' : 'mdi:white-balance-sunny'" 
-            data-width="20" 
+          <span
+            class="iconify"
+            :data-icon="isDark() ? 'mdi:weather-night' : 'mdi:white-balance-sunny'"
+            data-width="20"
             data-height="20"
           ></span>
         </button>
@@ -78,11 +78,21 @@
           <span class="iconify" data-icon="mdi:arrow-left" data-width="20" data-height="20"></span>
         </button>
 
-        <!-- 报告页：分享结果 -->
+        <!-- 报告页：分享结果（桌面端） -->
         <button
           v-if="currentPath === '/report'"
           @click="openShareFromHeader"
           class="icon-btn desktop-only"
+          title="分享结果"
+        >
+          <span class="iconify" data-icon="mdi:share-variant" data-width="20" data-height="20"></span>
+        </button>
+
+        <!-- 报告页：分享结果（移动端） -->
+        <button
+          v-if="currentPath === '/report'"
+          @click="openShareFromHeader"
+          class="icon-btn mobile-only"
           title="分享结果"
         >
           <span class="iconify" data-icon="mdi:share-variant" data-width="20" data-height="20"></span>
@@ -123,6 +133,16 @@
               <span class="iconify" data-icon="mdi:chart-box" data-width="18" data-height="18"></span>
               <span>报告</span>
             </router-link>
+            <!-- 报告页专属操作 -->
+            <div v-if="currentPath === '/report'" class="popover-divider"></div>
+            <button v-if="currentPath === '/report'" class="popover-item popover-action" @click="handleRetest">
+              <span class="iconify" data-icon="mdi:refresh" data-width="18" data-height="18"></span>
+              <span>再测一次</span>
+            </button>
+            <button v-if="currentPath === '/report'" class="popover-item popover-action" @click="handleShareScore">
+              <span class="iconify" data-icon="mdi:share-variant" data-width="18" data-height="18"></span>
+              <span>分享你的分数</span>
+            </button>
             <!-- 分隔线 -->
             <div v-if="hasActivation" class="popover-divider"></div>
             <!-- 激活码状态（移动端） -->
@@ -192,6 +212,25 @@ const goToActivation = () => {
 }
 
 const openShareFromHeader = () => {
+  const raw = localStorage.getItem('test_report')
+  if (!raw) return
+  try {
+    const report = JSON.parse(raw)
+    showShareModal(report)
+  } catch (e) {}
+}
+
+const handleRetest = () => {
+  showMobileMenu.value = false
+  // 清除上一次测试的所有数据
+  localStorage.removeItem('test_answers')
+  localStorage.removeItem('test_basic_info')
+  // 跳转到测评页面
+  router.push('/assessment')
+}
+
+const handleShareScore = () => {
+  showMobileMenu.value = false
   const raw = localStorage.getItem('test_report')
   if (!raw) return
   try {
@@ -516,14 +555,20 @@ onBeforeUnmount(() => {
   color: var(--primary);
 }
 
-/* 移动端操作按钮（更换激活码） */
+/* 移动端操作按钮（更换激活码、再测一次、分享分数） */
 .popover-action {
   color: var(--primary);
   font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
 }
 
 .popover-action:hover {
-  background: rgba(var(--primary-rgb), 0.1);
+  background: var(--bg-section);
+  color: var(--primary);
 }
 
 /* 响应式 */
