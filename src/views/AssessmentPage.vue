@@ -817,6 +817,54 @@ const preGenerateAIReport = async () => {
   }
 }
 
+// 🎯 显示重新测试确认对话框
+const showRetestConfirmDialog = () => {
+  return new Promise((resolve) => {
+    // 锁定背景滚动
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    // 创建对话框元素
+    const modal = document.createElement('div')
+    modal.className = 'retest-confirm-modal'
+    modal.innerHTML = `
+      <div class="modal-overlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">💡 提示</h3>
+        </div>
+        <div class="modal-body">
+          <p class="modal-message">您已经完成过测评了，是否要重新测试？</p>
+          <p class="modal-hint">重新测试将清除当前答题进度，但会保留您的历史报告。</p>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-secondary" id="cancelRetest">查看报告</button>
+          <button class="modal-btn modal-btn-primary" id="confirmRetest">重新测试</button>
+        </div>
+      </div>
+    `
+
+    document.body.appendChild(modal)
+
+    // 绑定事件
+    const handleCancel = () => {
+      document.body.style.overflow = originalOverflow
+      modal.remove()
+      resolve(false)
+    }
+
+    const handleConfirm = () => {
+      document.body.style.overflow = originalOverflow
+      modal.remove()
+      resolve(true)
+    }
+
+    modal.querySelector('#cancelRetest').addEventListener('click', handleCancel)
+    modal.querySelector('#confirmRetest').addEventListener('click', handleConfirm)
+    modal.querySelector('.modal-overlay').addEventListener('click', handleCancel)
+  })
+}
+
 // 提交测评
 const submitAssessment = async () => {
   // 检查是否所有题目都已回答
@@ -995,7 +1043,7 @@ onMounted(async () => {
   // 🔒 【重要】进入答题页面前，先检查激活状态和每日限制
   const activationStatus = await getActivationStatus()
   console.log('[进入答题页] 激活状态检查:', activationStatus)
-  
+
   // 检查激活码是否过期
   if (activationStatus.expired) {
     showToast('激活码已过期，请重新激活', 2500, 'error')
@@ -1004,7 +1052,7 @@ onMounted(async () => {
     }, 1500)
     return
   }
-  
+
   // 检查今日剩余次数
   if (activationStatus.remainingToday <= 0) {
     showToast('今日测评次数已用完（3次/天），明天0点自动恢复', 2500, 'warning')
@@ -1013,18 +1061,58 @@ onMounted(async () => {
     }, 2000)
     return
   }
-  
+
   console.log(`✅ [进入答题页] 检查通过！今日剩余 ${activationStatus.remainingToday} 次，有效期剩余 ${activationStatus.daysLeft} 天`)
-  
+
+  // 🎯 【新增】检查是否已完成测评，如果是则显示确认对话框
+  const hasCompletedReport = localStorage.getItem('test_report')
+  if (hasCompletedReport) {
+    // 显示确认对话框
+    const shouldRetest = await showRetestConfirmDialog()
+    if (!shouldRetest) {
+      // 用户选择不重新测试，返回报告页
+      router.push('/report')
+      return
+    }
+
+    // 🔒 用户选择重新测试，先扣除一次测评次数
+    console.log('🔄 [重新测试] 用户确认重新测试，开始扣除次数...')
+    const rec = await recordOneUsage()
+
+    if (!rec || !rec.recorded) {
+      // ❌ 扣次数失败（可能是次数不足或激活码过期）
+      const errorMsg = rec?.error || '无法开始新测评'
+      showToast(errorMsg, 2500, 'error')
+
+      // 根据具体情况跳转
+      if (rec?.expired) {
+        setTimeout(() => router.push('/activation'), 1500)
+      } else if (rec?.remainingToday <= 0) {
+        setTimeout(() => router.push('/'), 1500)
+      } else {
+        setTimeout(() => router.push('/report'), 1500)
+      }
+      return
+    }
+
+    // ✅ 扣次数成功，清除旧数据，开始新测评
+    console.log(`✅ [重新测试] 扣次数成功！今日剩余 ${rec.remainingToday} 次，有效期剩余 ${rec.daysLeft} 天`)
+    localStorage.removeItem('test_answers')
+    localStorage.removeItem('test_basic_info')
+    // 注意：不删除 test_report，保留旧报告以便用户对比
+
+    showToast(`开始新测评！今日剩余${rec.remainingToday}次 · 剩余${rec.daysLeft}天`, 2000, 'success')
+  }
+
   // 🎲 生成随机题目（从60题库中随机抽取35题+2题固定效度题）
   questions.value = getRandomQuestions()
   console.log('✨ 已生成随机题目，本次测评共', questions.value.length, '题')
-  
+
   window.addEventListener('resize', handleResize)
   handleResize()
   loadBasicInfo()
   loadAnswers()
-  
+
   // 如果有保存的进度，询问是否继续
   if (Object.keys(answers).length > 0 && currentQuestion.value > 1) {
     showToast(`继续之前的测评（第${currentQuestion.value}题）`, 2000, 'info')
@@ -1792,5 +1880,174 @@ onMounted(async () => {
 
   .action-bar.in-content { margin-top: 28px; }
   .btn-nav { height: 44px; font-size: 15px; border-radius: 10px; }
+}
+</style>
+
+<!-- 🎯 重新测试确认对话框样式 (全局样式,不受 scoped 限制) -->
+<style>
+.retest-confirm-modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  animation: fadeIn 0.2s ease;
+  pointer-events: auto !important;
+}
+
+.retest-confirm-modal .modal-overlay {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(4px);
+}
+
+.retest-confirm-modal .modal-content {
+  position: relative !important;
+  background: var(--bg-card) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px var(--shadow-deep) !important;
+  max-width: 420px !important;
+  width: 90% !important;
+  overflow: hidden !important;
+  animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid var(--border) !important;
+}
+
+.retest-confirm-modal .modal-header {
+  padding: 24px 24px 16px !important;
+  border-bottom: 1px solid var(--border) !important;
+  background: var(--bg-section) !important;
+}
+
+.retest-confirm-modal .modal-title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--text-title) !important;
+  margin: 0 !important;
+}
+
+.retest-confirm-modal .modal-body {
+  padding: 24px !important;
+  background: var(--bg-card) !important;
+}
+
+.retest-confirm-modal .modal-message {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--text-title) !important;
+  margin: 0 0 12px 0 !important;
+  line-height: 1.5 !important;
+}
+
+.retest-confirm-modal .modal-hint {
+  font-size: 14px !important;
+  color: var(--text-secondary) !important;
+  margin: 0 !important;
+  line-height: 1.6 !important;
+}
+
+.retest-confirm-modal .modal-footer {
+  padding: 16px 24px 24px !important;
+  display: flex !important;
+  gap: 12px !important;
+  background: var(--bg-card) !important;
+}
+
+.retest-confirm-modal .modal-btn {
+  flex: 1 !important;
+  height: 48px !important;
+  border-radius: 12px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.retest-confirm-modal .modal-btn-secondary {
+  background: var(--bg-section) !important;
+  color: var(--text-title) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.retest-confirm-modal .modal-btn-secondary:hover {
+  background: var(--bg-main) !important;
+  border-color: var(--primary) !important;
+}
+
+.retest-confirm-modal .modal-btn-primary {
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+
+.retest-confirm-modal .modal-btn-primary:hover {
+  background: var(--primary-hover) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px var(--shadow-medium) !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 移动端优化 */
+@media (max-width: 480px) {
+  .retest-confirm-modal .modal-content {
+    max-width: 95% !important;
+  }
+
+  .retest-confirm-modal .modal-header {
+    padding: 20px 20px 12px !important;
+  }
+
+  .retest-confirm-modal .modal-title {
+    font-size: 18px !important;
+  }
+
+  .retest-confirm-modal .modal-body {
+    padding: 20px !important;
+  }
+
+  .retest-confirm-modal .modal-message {
+    font-size: 15px !important;
+  }
+
+  .retest-confirm-modal .modal-hint {
+    font-size: 13px !important;
+  }
+
+  .retest-confirm-modal .modal-footer {
+    padding: 12px 20px 20px !important;
+    flex-direction: column !important;
+  }
+
+  .retest-confirm-modal .modal-btn {
+    height: 44px !important;
+    font-size: 15px !important;
+  }
 }
 </style>

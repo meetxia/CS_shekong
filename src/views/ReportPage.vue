@@ -469,17 +469,11 @@ const renderRadarChart = () => {
   const borderColorVar = computedStyle.getPropertyValue('--border').trim()
   const isDark = document.body.className.includes('-dark')
 
-  // 优化配色 - 使用主题色系，浅色模式用主题色，深色模式用浅粉色
-  // 网格线颜色：浅色模式用边框色，深色模式用浅色
-  const gridColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(186,155,146,0.7)'
-  // 雷达图线条颜色：浅色模式用主题色，深色模式用浅粉色
-  const radarLineColor = isDark ? 'rgba(255,180,150,0.9)' : 'rgba(186,155,146,0.95)'
-  // 雷达图填充颜色：浅色模式用主题色淡化，深色模式用淡粉色
-  const radarAreaColor = isDark
-    ? 'rgba(255,180,150,0.8)'
-    : 'rgba(186,155,146,0.6)'
-  // 标签颜色：浅色模式用标题色，深色模式用浅色
-  const labelColor = isDark ? '#F5E6D3' : textTitle || '#4e473f'
+  // 雷达图配色方案
+  const gridColor = 'rgba(128,128,128,0.5)'  // 网格线：灰色
+  const radarLineColor = 'rgba(241,105,46,0.9)'  // 雷达线条：深粉色
+  const radarAreaColor = 'rgba(241,104,46,0.5)'  // 雷达填充：浅粉色
+  const labelColor = isDark ? '#FFFFFF' : '#000000'  // 标签文字：深色模式白色，浅色模式黑色
   
   // 准备雷达图数据
   const indicatorData = report.value.dimensions.map(dim => ({
@@ -499,33 +493,26 @@ const renderRadarChart = () => {
         textStyle: {
           color: labelColor,
           fontSize: 15,
-          fontWeight: 700,
-          // 深色模式才加阴影，浅色模式不需要
-          textShadowColor: isDark ? 'rgba(0,0,0,0.6)' : 'transparent',
-          textShadowBlur: isDark ? 4 : 0,
-          textShadowOffsetX: 0,
-          textShadowOffsetY: isDark ? 1 : 0
+          fontWeight: 600
         }
       },
       splitLine: {
         lineStyle: {
           color: gridColor,
           type: 'solid',
-          width: isDark ? 1.0 : 1.5
+          width: 1.2
         }
       },
       splitArea: {
         show: true,
         areaStyle: {
-          color: isDark
-            ? ['rgba(212,181,172,0.05)', 'rgba(212,181,172,0.08)']
-            : ['rgba(186,155,146,0.04)', 'rgba(186,155,146,0.07)']
+          color: ['rgba(255,192,203,0.05)', 'rgba(255,192,203,0.1)']
         }
       },
       axisLine: {
         lineStyle: {
           color: gridColor,
-          width: isDark ? 1 : 2
+          width: 1
         }
       }
     },
@@ -533,11 +520,11 @@ const renderRadarChart = () => {
       show: true,
       confine: true,
       backgroundColor: isDark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.95)',
-      borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+      borderColor: 'rgba(255,105,180,0.3)',
       borderWidth: 1,
-      textStyle: { 
-        color: isDark ? '#F5E6D3' : '#1A1A1A', 
-        fontSize: 12 
+      textStyle: {
+        color: isDark ? '#FFFFFF' : '#000000',
+        fontSize: 12
       },
       formatter: (params) => {
         const values = params.value
@@ -557,24 +544,24 @@ const renderRadarChart = () => {
         },
         lineStyle: {
           color: radarLineColor,
-          width: isDark ? 3.5 : 4,
-          shadowColor: isDark ? radarLineColor : 'rgba(0,0,0,0.2)',
-          shadowBlur: isDark ? 8 : 6
+          width: 4,
+          shadowColor: 'rgba(255,105,180,0.3)',
+          shadowBlur: 6
         },
         itemStyle: {
           color: radarLineColor,
           borderColor: '#fff',
-          borderWidth: isDark ? 2.5 : 3,
-          shadowColor: isDark ? radarLineColor : 'rgba(0,0,0,0.3)',
-          shadowBlur: isDark ? 6 : 8
+          borderWidth: 3,
+          shadowColor: 'rgba(255,105,180,0.4)',
+          shadowBlur: 8
         },
-        symbolSize: isDark ? 7 : 8,
+        symbolSize: 8,
         emphasis: {
           lineStyle: {
-            width: isDark ? 4 : 5
+            width: 5
           },
           itemStyle: {
-            shadowBlur: isDark ? 10 : 15
+            shadowBlur: 15
           }
         }
       }]
@@ -1656,6 +1643,7 @@ onUnmounted(() => {
 /* 底部信息 */
 .footer-info {
   margin-top: 32px;
+  margin-bottom: 32px;
   padding-top: 24px;
   border-top: 1px solid var(--border);
 }
@@ -1793,7 +1781,10 @@ onUnmounted(() => {
     padding: 32px 32px;
     margin-top: 32px;
   }
-  
+  .type-badge{
+    padding: 30px 10px;
+
+  }
   .score-layout {
     gap: 24px;
     max-width: 480px;
