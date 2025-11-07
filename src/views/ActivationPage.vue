@@ -12,7 +12,7 @@
       <!-- 说明文字 -->
       <div class="intro fade-in" style="animation-delay: 0.1s">
         <p class="intro-text text-body">基于SAS社交焦虑量表改良</p>
-        <p class="intro-text text-body">30题 · 5-8分钟 · 专业分析</p>
+        <p class="intro-text text-body">35题 · 5-8分钟 · 专业分析</p>
         <div class="value-cta">
           <span class="badge">7天有效</span>
           <span class="badge">每天3次</span>

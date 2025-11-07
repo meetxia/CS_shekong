@@ -77,7 +77,7 @@
                 </span>
               </div>
               <div class="feature-content">
-                <div class="feature-title">30题专业测评</div>
+                <div class="feature-title">35题专业测评</div>
                 <div class="feature-desc text-secondary">6大维度全面分析社交焦虑</div>
               </div>
             </div>
@@ -220,7 +220,6 @@
   
   const router = useRouter()
   
-  const testCount = ref(15328) // 模拟已测试人数
   const showAbout = ref(false)
   const showPrivacy = ref(false)
   
@@ -247,11 +246,90 @@
     }
   }
   
-  // 每隔一段时间增加测试人数（模拟实时数据）
+  // ============================================
+  // 测评人数自动增长逻辑
+  // ============================================
+  
+  /**
+   * 计算当前测评人数
+   * 基础人数 + 自启动日期以来每天随机增长的累计值
+   */
+  const getTestCount = () => {
+    const STORAGE_KEY = 'test_count_data'
+    const BASE_COUNT = 15328 // 初始基础人数
+    const START_DATE = '2025-01-01' // 开始计数的日期
+    const AVG_DAILY_INCREASE = 100 // 平均每天增加100人左右
+    
+    // 从localStorage获取已保存的数据
+    let savedData = null
+    try {
+      const data = localStorage.getItem(STORAGE_KEY)
+      if (data) {
+        savedData = JSON.parse(data)
+      }
+    } catch (e) {
+      console.error('读取测评人数数据失败:', e)
+    }
+    
+    const today = new Date().toISOString().split('T')[0]
+    const startDate = new Date(START_DATE)
+    const currentDate = new Date(today)
+    
+    // 计算从开始日期到今天的天数
+    const daysSinceStart = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24))
+    
+    // 如果有保存的数据且日期匹配，直接返回
+    if (savedData && savedData.date === today) {
+      return savedData.count
+    }
+    
+    // 生成每日增长数据（使用日期作为随机种子，确保同一天数值一致）
+    let totalIncrease = 0
+    for (let i = 0; i <= daysSinceStart; i++) {
+      const date = new Date(startDate)
+      date.setDate(date.getDate() + i)
+      const dateStr = date.toISOString().split('T')[0]
+      
+      // 使用日期字符串生成伪随机数（同一天生成相同的值）
+      const seed = dateStr.split('-').reduce((acc, val) => acc + parseInt(val), 0)
+      const random = (Math.sin(seed) * 10000) % 1
+      
+      // 每天随机增加 80-120 人之间
+      const dailyIncrease = Math.floor(80 + random * 40)
+      totalIncrease += dailyIncrease
+    }
+    
+    const currentCount = BASE_COUNT + totalIncrease
+    
+    // 保存到localStorage
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        date: today,
+        count: currentCount
+      }))
+    } catch (e) {
+      console.error('保存测评人数数据失败:', e)
+    }
+    
+    return currentCount
+  }
+  
+  const testCount = ref(getTestCount())
+  
+  // 每隔一段时间小幅增加测试人数（模拟实时增长）
   onMounted(() => {
+    // 每5秒随机增加0-2人，模拟实时测评
     setInterval(() => {
       testCount.value += Math.floor(Math.random() * 3)
     }, 5000)
+    
+    // 每小时检查一次日期变化，更新基准人数
+    setInterval(() => {
+      const newCount = getTestCount()
+      if (newCount > testCount.value) {
+        testCount.value = newCount
+      }
+    }, 60 * 60 * 1000)
   })
   </script>
   

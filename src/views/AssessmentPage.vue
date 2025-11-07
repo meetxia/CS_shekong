@@ -884,7 +884,8 @@ const submitAssessment = async () => {
   submitting.value = true
   
   try {
-    // 🔒 提交前再次检查激活状态（防止答题期间超限）
+    // 🔧 【修复】提交时不再检查次数（次数已在开始测评时扣除）
+    // 只进行简单的状态检查，确保激活未过期即可
     const statusBeforeSubmit = await getActivationStatus()
     console.log('[提交测评] 提交前状态检查:', statusBeforeSubmit)
     
@@ -895,14 +896,8 @@ const submitAssessment = async () => {
       return
     }
     
-    if (statusBeforeSubmit.remainingToday <= 0) {
-      showToast('今日测评次数已用完，无法提交', 2500, 'warning')
-      submitting.value = false
-      setTimeout(() => router.push('/'), 2000)
-      return
-    }
-    
-    console.log(`✅ [提交测评] 状态检查通过！今日剩余 ${statusBeforeSubmit.remainingToday} 次`)
+    // 🔧 【重要】不检查剩余次数，因为次数已在开始测评时扣除
+    console.log(`✅ [提交测评] 状态检查通过（次数已在开始测评时扣除）`)
     
     let report
 
@@ -1017,7 +1012,7 @@ const submitAssessment = async () => {
 }
 
 onMounted(async () => {
-  // 🔒 【重要】进入答题页面前，先检查激活状态和每日限制
+  // 🔒 【重要】进入答题页面前，先检查激活状态
   const activationStatus = await getActivationStatus()
   console.log('[进入答题页] 激活状态检查:', activationStatus)
 
@@ -1030,20 +1025,22 @@ onMounted(async () => {
     return
   }
 
-  // 检查今日剩余次数
-  if (activationStatus.remainingToday <= 0) {
-    showToast('今日测评次数已用完（3次/天），明天0点自动恢复', 2500, 'warning')
-    setTimeout(() => {
-      router.push('/')
-    }, 2000)
-    return
-  }
-
-  console.log(`✅ [进入答题页] 检查通过！今日剩余 ${activationStatus.remainingToday} 次，有效期剩余 ${activationStatus.daysLeft} 天`)
-
-  // 🎯 【新增】检查是否已完成测评，如果是则显示确认对话框
+  // 🎯 【核心逻辑】检查是否已完成测评（有旧报告）
   const hasCompletedReport = localStorage.getItem('test_report')
+  
   if (hasCompletedReport) {
+    // ========== 场景2：重新测评（有旧报告）==========
+    console.log('📋 [有旧报告] 检测到已完成的测评报告')
+    
+    // 先检查今日剩余次数（扣除前检查）
+    if (activationStatus.remainingToday <= 0) {
+      showToast('今日测评次数已用完（3次/天），明天0点自动恢复', 2500, 'warning')
+      setTimeout(() => {
+        router.push('/')
+      }, 2000)
+      return
+    }
+    
     // 显示确认对话框
     const shouldRetest = await showRetestConfirmDialog()
     if (!shouldRetest) {
@@ -1052,7 +1049,7 @@ onMounted(async () => {
       return
     }
 
-    // 🔒 用户选择重新测试，先扣除一次测评次数
+    // 🔑 用户确认重新测试，扣除一次次数
     console.log('🔄 [重新测试] 用户确认重新测试，开始扣除次数...')
     const rec = await recordOneUsage()
 
@@ -1079,6 +1076,12 @@ onMounted(async () => {
     // 注意：不删除 test_report，保留旧报告以便用户对比
 
     showToast(`开始新测评！今日剩余${rec.remainingToday}次 · 剩余${rec.daysLeft}天`, 2000, 'success')
+    
+  } else {
+    // ========== 场景1：第一次测评（没有旧报告）==========
+    console.log('🆕 [第一次测评] 没有旧报告，次数已在激活页面扣除')
+    // 注意：此时次数已经在 ActivationPage.vue 中扣除了
+    // 这里不需要再次扣除，也不需要检查剩余次数
   }
 
   // 🎲 生成随机题目（从60题库中随机抽取35题+2题固定效度题）
