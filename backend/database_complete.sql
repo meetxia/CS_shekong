@@ -178,7 +178,8 @@ ON DUPLICATE KEY UPDATE code=code;
 -- 插入默认AI配置
 INSERT INTO ai_config (provider, api_key, api_url, model, is_active, max_tokens, temperature, timeout, notes)
 VALUES 
-('deepseek', 'sk-neZiqN36Qh4HbF7WB3633aC322844cB09c5474D64d5fA657', 'https://api.siliconflow.cn/v1/chat/completions', 'deepseek-ai/DeepSeek-V3', TRUE, 2000, 0.70, 30000, '默认AI配置')
+('deepseek', 'sk-neZiqN36Qh4HbF7WB3633aC322844cB09c5474D64d5fA657', 'https://api.siliconflow.cn/v1/chat/completions', 'deepseek-ai/DeepSeek-V3', TRUE, 2000, 0.70, 30000, '默认AI配置'),
+('claude', 'sk-neZiqN36Qh4HbF7WB3633aC322844cB09c5474D64d5fA657', 'https://dpapi.cn/v1/chat/completions', 'claude-4.5-sonnet', FALSE, 2000, 0.70, 30000, 'Claude 4.5 Sonnet')
 ON DUPLICATE KEY UPDATE provider=provider;
 
 -- ============================================

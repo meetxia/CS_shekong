@@ -1,263 +1,1150 @@
-# 社恐程度专业测评 MVP
+# 社恐程度专业测评系统
 
-基于SAS社交焦虑量表改良的专业心理测评H5应用
+<div align="center">
 
-## 🤖 **AI智能分析**（最新功能！）
+![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Vue](https://img.shields.io/badge/Vue-3.4.0-brightgreen.svg)
+![Node](https://img.shields.io/badge/Node-16+-success.svg)
+
+**基于SAS社交焦虑量表改良的专业心理测评应用**
+
+[快速开始](#-快速开始) • [功能特点](#-项目特点) • [在线演示](#) • [文档](#-文档导航) • [部署指南](./宝塔面板部署清单.md)
+
+</div>
+
+---
+
+## 📖 目录
+
+- [项目简介](#项目简介)
+- [核心特性](#-项目特点)
+- [快速开始](#-快速开始)
+- [技术架构](#-技术栈)
+- [项目结构](#-项目结构)
+- [文档导航](#-文档导航)
+- [开发指南](#-开发说明)
+- [部署方案](#-部署方案)
+- [常见问题](#-常见问题)
+- [贡献指南](#-贡献)
+- [版本历史](#-版本历史)
+- [许可证](#-许可证)
+
+---
+
+## 项目简介
+
+社恐程度专业测评系统是一款基于 **SAS（Social Anxiety Scale）社交焦虑量表**改良的专业心理测评 Web 应用。系统采用现代化技术栈，集成 **Claude 4.5 Sonnet** AI 引擎，提供**35道专业题目**的**8维度深度分析**，为用户生成个性化的社交焦虑评估报告。
+
+### 🌟 核心优势
+
+- **🧠 AI智能分析**：Claude 4.5 Sonnet 驱动的个性化深度分析
+- **📊 专业测评体系**：35题8维度科学量表，心理学理论支撑
+- **🎨 视觉体验**：4套精美国风配色主题，实时切换
+- **🔒 安全可靠**：激活码验证系统 + 本地数据存储
+- **📱 响应式设计**：完美适配移动端、平板、桌面端
+- **⚡ 高性能**：Vite构建 + 智能缓存，秒级加载
+
+---
+
+## 🎯 项目特点
+
+### AI智能分析（最新功能）
 
 ✨ 集成 **Claude 4.5 Sonnet** AI，提供深度个性化的社恐类型分析！
 
 - 🎯 **真正个性化**：根据答题情况生成独一无二的分析
 - ⚡ **秒开报告**：智能预生成技术，提交后<1秒查看
-- 🛡️ **高可用**：AI + 本地增强规则双重保障
+- 🛡️ **高可用性**：AI + 本地增强规则双重保障
 - 💎 **专业深度**：心理学理论支撑，温暖且有力量
+- 🔄 **智能降级**：AI服务不可用时自动切换到本地规则
 
-📖 [查看AI功能详细说明](docs/AI功能说明.md) | [查看生成示例](docs/AI生成示例.md) | [测试指引](docs/测试AI功能.md)
+📖 [查看AI功能详细说明](docs/04-功能开发报告/AI功能说明.md) | [查看生成示例](docs/04-功能开发报告/AI生成示例.md) | [测试指引](docs/02-快速启动指南/测试AI功能.md)
 
-## 📋 项目特点
+### 核心功能
 
-- ✨ **极简MVP设计**：3个核心页面，流程清晰
-- 🎨 **高级国风配色**：4套精美配色方案（2浅+2深）
-- 📊 **专业测评体系**：35题8维度深度分析
-- 🤖 **AI个性化分析**：Claude 4.5驱动的深度分析
-- 🔒 **激活码机制**：验证购买凭证
-- 💾 **本地数据存储**：LocalStorage自动保存进度
-- 📱 **响应式设计**：完美适配移动端和桌面端
+- ✨ **极简用户体验**：3个核心页面，流程清晰流畅
+- 🎨 **高级国风配色**：精美配色方案（雪尽霜余 浅深色）
+- 📊 **8维度分析**：社交恐惧、回避行为、预期焦虑、社交反刍、生理反应、自我效能、人际敏感、负面评价恐惧
+- 🤖 **AI驱动分析**：基于Claude 4.5的个性化心理分析
+- 🔒 **激活码验证**：支持MySQL数据库 + Supabase云存储双方案
+- 💾 **智能存储**：LocalStorage自动保存答题进度
+- 📱 **全端适配**：完美支持移动端和桌面端
+- 📈 **可视化报告**：ECharts雷达图 + 详细文字分析
+- 👨‍💼 **后台管理**：完整的激活码管理和数据分析系统
 
 ## 🚀 快速开始
 
 ### 环境要求
 
-- Node.js 16+ 
-- npm 或 pnpm
+| 环境 | 版本要求 | 说明 |
+|------|---------|------|
+| Node.js | 16.0.0+ | 推荐使用 LTS 版本 |
+| npm | 7.0.0+ | 或使用 pnpm 8.0.0+ |
+| MySQL | 5.7+ / 8.0+ | 用于激活码数据库（可选） |
+| 浏览器 | 现代浏览器 | Chrome 90+, Firefox 88+, Safari 14+, Edge 90+ |
 
-### 安装依赖
+### 快速安装
+
+#### 1️⃣ 克隆项目
+
+```bash
+git clone <repository-url>
+cd CS_shekong
+```
+
+#### 2️⃣ 安装前端依赖
 
 ```bash
 npm install
+# 或使用 pnpm
+pnpm install
 ```
+
+#### 3️⃣ 安装后端依赖
+
+```bash
+cd backend
+npm install
+cd ..
+```
+
+#### 4️⃣ 配置环境变量
+
+```bash
+# 前端环境变量（可选）
+cp .env.example .env.production
+
+# 后端环境变量（必需）
+cp backend/.env.example backend/.env
+```
+
+编辑 `backend/.env` 配置数据库和AI服务：
+
+```env
+# 数据库配置
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=social_anxiety_assessment
+
+# Claude AI 配置
+CLAUDE_API_KEY=your_claude_api_key
+CLAUDE_API_URL=https://api.anthropic.com/v1/messages
+
+# 服务器配置
+PORT=3001
+NODE_ENV=development
+```
+
+#### 5️⃣ 初始化数据库（可选）
+
+```bash
+# 导入数据库结构
+mysql -u root -p social_anxiety_assessment < backend/database_complete.sql
+
+# 或使用初始化脚本
+cd backend
+node initDb.js
+node initAdmin.js  # 创建管理员账号
+```
+
+📖 详细配置说明：[后端 README](backend/README.md) | [数据库初始化指南](docs/02-快速启动指南/本地MySQL激活码系统使用指南.md)
 
 ### 启动开发服务器
 
+#### 方式一：分别启动（推荐用于开发调试）
+
 ```bash
-cd backend ; npm run dev
+# 终端1：启动后端服务
+cd backend
+npm run dev
+
+# 终端2：启动前端服务
 npm run dev
 ```
 
-浏览器会自动打开 `http://localhost:3000`
+#### 方式二：并行启动
+
+```bash
+# 同时启动前后端
+npm run dev:all
+```
+
+浏览器会自动打开 `http://localhost:3000`（前端）
+后端 API 运行在 `http://localhost:3001`
 
 ### 构建生产版本
 
 ```bash
+# 构建前端
+npm run build
+
+# 构建后端（如需要）
+cd backend
 npm run build
 ```
+
+构建产物位于 `dist/` 目录。
+
+📖 详细部署指南：[宝塔面板部署清单](./宝塔面板部署清单.md) | [Docker部署](#docker部署)
 
 ## 📁 项目结构
 
 ```
 CS_shekong/
-├── docs/                          # 文档目录
-│   └── 04-功能开发报告/
-│       └── 社恐最新极简MVP产品原型设计文档.md
-├── src/
-│   ├── views/                     # 页面组件
-│   │   ├── ActivationPage.vue    # P1: 激活页
-│   │   ├── AssessmentPage.vue    # P2: 测评页
-│   │   └── ReportPage.vue        # P3: 报告页
-│   ├── composables/               # 组合式函数
-│   │   └── useColorScheme.js     # 配色系统
-│   ├── utils/                     # 工具函数
-│   │   ├── activation.js         # 激活码验证
-│   │   ├── scoring.js            # 计分和报告生成
-│   │   └── toast.js              # 提示组件
-│   ├── data/                      # 数据
-│   │   └── questions.js          # 30道测评题目
-│   ├── styles/                    # 样式
-│   │   ├── index.css             # 全局样式
-│   │   └── themes.css            # 配色主题
-│   ├── router/                    # 路由
-│   │   └── index.js
-│   ├── App.vue                    # 根组件
-│   └── main.js                    # 入口文件
-├── index.html
-├── package.json
-├── vite.config.js
-└── README.md
+├── 📁 frontend/                    # 前端应用
+│   ├── src/
+│   │   ├── views/                 # 页面组件
+│   │   │   ├── ActivationPage.vue    # P1: 激活码验证页
+│   │   │   ├── AssessmentPage.vue    # P2: 测评答题页
+│   │   │   ├── ReportPage.vue        # P3: 结果报告页
+│   │   │   └── AdminLogin.vue        # 管理后台登录
+│   │   ├── components/            # 公共组件
+│   │   │   ├── AdminPanel.vue        # 后台管理面板
+│   │   │   ├── CodeManagement.vue    # 激活码管理
+│   │   │   └── Toast.vue             # 提示组件
+│   │   ├── composables/           # 组合式函数
+│   │   │   ├── useColorScheme.js     # 主题配色系统
+│   │   │   └── useActivation.js      # 激活码逻辑
+│   │   ├── utils/                 # 工具函数
+│   │   │   ├── activation.js         # 激活码验证
+│   │   │   ├── scoring.js            # 计分和报告生成
+│   │   │   ├── aiAnalysis.js         # AI分析集成
+│   │   │   ├── toast.js              # 提示工具
+│   │   │   └── logger.js             # 日志工具
+│   │   ├── data/                  # 静态数据
+│   │   │   ├── questions.js          # 35道测评题目
+│   │   │   └── dimensions.js         # 8维度定义
+│   │   ├── styles/                # 样式文件
+│   │   │   ├── index.css             # 全局样式
+│   │   │   └── themes.css            # 配色主题
+│   │   ├── router/                # 路由配置
+│   │   │   └── index.js
+│   │   ├── stores/                # Pinia状态管理
+│   │   │   ├── assessment.js         # 测评状态
+│   │   │   └── user.js               # 用户状态
+│   │   ├── App.vue                # 根组件
+│   │   └── main.js                # 入口文件
+│   ├── public/                    # 静态资源
+│   ├── index.html
+│   ├── vite.config.js            # Vite配置
+│   └── package.json
+│
+├── 📁 backend/                    # 后端服务
+│   ├── routes/                    # API路由
+│   │   ├── activation.js             # 激活码相关API
+│   │   ├── admin.js                  # 管理后台API
+│   │   └── ai.js                     # AI分析API
+│   ├── middleware/                # 中间件
+│   │   ├── auth.js                   # 身份验证
+│   │   ├── rateLimiter.js            # 速率限制
+│   │   └── errorHandler.js           # 错误处理
+│   ├── services/                  # 业务逻辑
+│   │   ├── activationService.js      # 激活码服务
+│   │   └── aiService.js              # AI服务
+│   ├── config/                    # 配置文件
+│   │   └── database.js               # 数据库配置
+│   ├── 06-数据库脚本/             # SQL脚本
+│   │   ├── database_complete.sql     # 完整数据库结构
+│   │   └── seed_data.sql             # 示例数据
+│   ├── .env.example               # 环境变量模板
+│   ├── ecosystem.config.js        # PM2配置
+│   ├── server.js                  # 服务器入口
+│   ├── initDb.js                  # 数据库初始化
+│   ├── initAdmin.js               # 管理员初始化
+│   └── package.json
+│
+├── 📁 docs/                       # 完整项目文档
+│   ├── INDEX.md                      # 文档索引
+│   ├── 01-核心文档/
+│   │   ├── README-项目完成总结.md
+│   │   ├── 功能清单.md
+│   │   ├── 项目交付文档.md
+│   │   └── 验收清单.md
+│   ├── 02-快速启动指南/
+│   │   ├── 开发启动指南.md
+│   │   ├── 快速测试清单.md
+│   │   ├── 本地MySQL激活码系统使用指南.md
+│   │   └── 管理员后台使用手册.md
+│   ├── 03-修复报告/
+│   ├── 04-功能开发报告/
+│   │   ├── AI功能说明.md
+│   │   └── 社恐最新极简MVP产品原型设计文档.md
+│   └── 06-数据库脚本/
+│
+├── 📄 nginx.conf                  # Nginx配置示例
+├── 📄 .env.example                # 前端环境变量模板
+├── 📄 宝塔面板部署清单.md          # 部署指南
+├── 📄 README.md                   # 本文件
+└── 📄 package.json                # 项目配置
+
 ```
+
+### 核心目录说明
+
+| 目录/文件 | 说明 |
+|----------|------|
+| `src/views/` | 三个核心页面：激活页、测评页、报告页 |
+| `src/utils/` | 核心业务逻辑：计分算法、AI分析集成 |
+| `src/data/` | 35道专业题目和8维度定义 |
+| `backend/routes/` | RESTful API接口定义 |
+| `backend/services/` | 业务逻辑层（激活码、AI） |
+| `docs/` | 81个详细文档文件（设计、开发、部署） |
 
 ## 🎨 配色方案
 
-项目提供4套国风配色方案，用户可在报告页自由切换：
+项目提供国风配色方案，用户可在报告页实时切换，支持亮色/暗色模式：
 
-1. **雪尽霜余（浅色）** - 温润雅致的灰茶红系
-2. **雪尽霜余（深色）** - 沉稳内敛的暗夜雅韵
-3. **芩江初雪（浅色）** - 清新淡雅的翡翠绿系
-4. **芩江初雪（深色）** - 静谧深邃的幽林夜色
+| 配色方案 | 风格 | 色调 | 适用场景 |
+|---------|------|------|---------|
+| 🌸 雪尽霜余（浅色） | 温润雅致 | 灰茶红系 | 白天使用，柔和舒适 |
+| 🌙 雪尽霜余（深色） | 沉稳内敛 | 暗夜雅韵 | 夜间使用，护眼减疲劳 |
 
-## 📱 功能页面
+### 主题切换
 
-### P1. 激活页
-- 输入激活码（格式：XXXX-XXXX-XXXX）
-- 自动格式化和验证
-- 验证成功后跳转测评页
+用户可在报告页面点击配色切换按钮，实时更换主题，选择会自动保存到 LocalStorage。
 
-**测试激活码**（开发阶段任何格式正确的激活码都可通过）：
-- `TEST-2024-ABCD`
-- `DEMO-1234-5678`
-- `MVPX-XXXX-YYYY`
-
-### P2. 测评页
-- 30道专业测评题目
-- 6个心理维度：
-  - 社交场景恐惧
-  - 回避行为程度
-  - 预期焦虑强度
-  - 社交后反刍
-  - 生理反应强度
-  - 社交自我效能
-- 实时进度显示
-- 自动保存答题进度
-- 支持返回修改答案
-
-### P3. 报告页
-- 总分和等级展示
-- 六维度雷达图分析
-- 社恐类型诊断（预演型/回避型/表演型/综合型）
-- 心理根源分析
-- 个性化改善建议
-- 4周渐进计划
-- 配色方案切换
+---
 
 ## 🛠 技术栈
 
-- **框架**: Vue 3
-- **构建工具**: Vite 5
-- **状态管理**: Pinia
-- **路由**: Vue Router 4
-- **图表**: ECharts 5
-- **日期处理**: Day.js
-- **样式**: 原生CSS + CSS变量
+### 前端技术
 
-## 💡 核心功能
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| [Vue 3](https://vuejs.org/) | 3.4.0 | 渐进式JavaScript框架，Composition API |
+| [Vite](https://vitejs.dev/) | 5.0.0 | 新一代前端构建工具，快速开发 |
+| [Pinia](https://pinia.vuejs.org/) | 2.1.7 | Vue官方状态管理库 |
+| [Vue Router](https://router.vuejs.org/) | 4.2.5 | 官方路由管理器 |
+| [Naive UI](https://www.naiveui.com/) | 2.43.1 | Vue 3 组件库 |
+| [ECharts](https://echarts.apache.org/) | 5.4.3 | 数据可视化图表库 |
+| [Tailwind CSS](https://tailwindcss.com/) | 3.4.18 | 原子化CSS框架 |
+| [Day.js](https://day.js.org/) | 1.11.10 | 轻量级日期处理库 |
+| [Vitest](https://vitest.dev/) | 4.0.7 | 单元测试框架 |
 
-### 激活码验证
+### 后端技术
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| [Node.js](https://nodejs.org/) | 16+ | JavaScript运行时环境 |
+| [Express](https://expressjs.com/) | 4.18.2 | Web应用框架 |
+| [MySQL](https://www.mysql.com/) | 5.7+ / 8.0+ | 关系型数据库 |
+| [mysql2](https://github.com/sidorares/node-mysql2) | 3.6.0 | MySQL客户端 |
+| [bcrypt](https://github.com/kelektiv/node.bcrypt.js) | 5.1.1 | 密码加密 |
+| [Claude API](https://www.anthropic.com/) | 4.5 Sonnet | AI分析引擎 |
+| [PM2](https://pm2.keymetrics.io/) | - | 进程管理器 |
+| [CORS](https://github.com/expressjs/cors) | - | 跨域资源共享 |
+| [express-rate-limit](https://github.com/express-rate-limit/express-rate-limit) | - | API速率限制 |
+
+### 开发工具
+
+| 工具 | 用途 |
+|------|------|
+| ESLint | JavaScript代码检查 |
+| Prettier | 代码格式化 |
+| Git | 版本控制 |
+| Nginx | 反向代理和静态文件服务 |
+| 宝塔面板 | 服务器管理（推荐） |
+
+---
+
+## 📱 功能页面详解
+
+### P1. 激活码验证页
+
+**功能特性**：
+- 📝 激活码格式：`XXXX-XXXX-XXXX`（数字+大写字母）
+- ✨ 自动格式化：输入时自动添加连字符
+- ⚡ 实时验证：格式验证 + 数据库验证
+- 🔒 安全防护：每日使用次数限制
+- 💾 状态记忆：验证成功后记录状态
+
+**测试激活码**（开发环境）：
+- `TEST-2024-ABCD`
+- `DEMO-1234-5678`
+- `MVPX-YYYY-ZZZZ`
+
+📖 详细说明：[激活码系统使用指南](docs/02-快速启动指南/本地MySQL激活码系统使用指南.md)
+
+### P2. 测评答题页
+
+**功能特性**：
+- 📋 **35道专业题目**：基于SAS量表改良
+- 📊 **8个心理维度**：
+  1. **社交场景恐惧** - 对不同社交情境的恐惧程度
+  2. **回避行为程度** - 逃避社交场合的倾向
+  3. **预期焦虑强度** - 事前对社交活动的焦虑
+  4. **社交后反刍** - 事后反复回想社交细节
+  5. **生理反应强度** - 心跳、出汗等生理症状
+  6. **社交自我效能** - 对社交能力的信心
+  7. **人际敏感性** - 对他人评价的敏感程度
+  8. **负面评价恐惧** - 害怕被他人负面评价
+
+- ⏱️ **实时进度**：显示答题进度百分比
+- 💾 **自动保存**：答案实时保存到 LocalStorage
+- ↩️ **支持修改**：可返回修改之前的答案
+- ⚠️ **防误提交**：未完成答题时禁止提交
+
+**评分标准**：
+- 每题1-5分（从"完全不符合"到"完全符合"）
+- 总分范围：35-175分
+- 答题时间：约8-12分钟
+
+### P3. 结果报告页
+
+**功能特性**：
+- 📊 **总分和等级**：
+  - 轻度（≤70分）：轻微社交焦虑
+  - 中度（71-105分）：中等社交焦虑
+  - 重度（106-140分）：严重社交焦虑
+  - 极重度（>140分）：极度社交焦虑
+
+- 🎯 **8维度雷达图**：ECharts可视化展示各维度得分
+
+- 🤖 **AI个性化分析**：
+  - 社恐类型判断（预演型/回避型/表现型/综合型）
+  - 深度心理根源分析
+  - 个性化改善建议
+  - 4周渐进式改善计划
+
+- 🎨 **配色切换**：4套主题实时切换
+
+- 📤 **分享功能**（规划中）：生成报告截图分享
+
+📖 详细说明：[测评系统设计文档](docs/04-功能开发报告/社恐最新极简MVP产品原型设计文档.md)
+
+### 管理后台（Admin）
+
+**访问路径**：`/admin-login`
+
+**功能特性**：
+- 🔐 管理员登录（用户名/密码）
+- 📊 激活码管理：
+  - 批量生成激活码
+  - 查看激活码状态
+  - 设置使用次数限制
+  - 设置有效期
+- 📈 数据统计：
+  - 激活码使用情况
+  - 测评完成数量
+  - 用户分布分析
+
+**默认管理员账号**（首次运行 `initAdmin.js` 后创建）：
+- 用户名：`admin`
+- 密码：`admin123`（请及时修改！）
+
+📖 详细说明：[管理员后台使用手册](docs/02-快速启动指南/管理员后台使用手册.md)
+
+---
+
+## 📚 文档导航
+
+本项目提供完整的81个文档文件，涵盖开发、部署、使用的全部流程。
+
+### 核心文档
+
+| 文档 | 说明 | 路径 |
+|------|------|------|
+| 📋 项目交付文档 | 完整的项目交付检查清单 | [docs/01-核心文档/项目交付文档.md](docs/01-核心文档/项目交付文档.md) |
+| 📝 功能清单 | 所有功能的详细列表 | [docs/01-核心文档/功能清单.md](docs/01-核心文档/功能清单.md) |
+| 🎯 项目完成总结 | 项目开发总结和回顾 | [docs/01-核心文档/README-项目完成总结.md](docs/01-核心文档/README-项目完成总结.md) |
+| ✅ 验收清单 | 上线前验收检查项 | [docs/01-核心文档/验收清单.md](docs/01-核心文档/验收清单.md) |
+
+### 快速开始
+
+| 文档 | 说明 | 路径 |
+|------|------|------|
+| 🚀 开发启动指南 | 本地开发环境搭建 | [docs/02-快速启动指南/开发启动指南.md](docs/02-快速启动指南/开发启动指南.md) |
+| 🧪 快速测试清单 | 功能测试检查清单 | [docs/02-快速启动指南/快速测试清单.md](docs/02-快速启动指南/快速测试清单.md) |
+| 🔑 激活码系统使用 | MySQL激活码系统配置 | [docs/02-快速启动指南/本地MySQL激活码系统使用指南.md](docs/02-快速启动指南/本地MySQL激活码系统使用指南.md) |
+| 👨‍💼 管理后台使用 | 管理员后台操作手册 | [docs/02-快速启动指南/管理员后台使用手册.md](docs/02-快速启动指南/管理员后台使用手册.md) |
+| 🤖 AI功能测试 | AI分析功能测试指南 | [docs/02-快速启动指南/测试AI功能.md](docs/02-快速启动指南/测试AI功能.md) |
+
+### 功能开发文档
+
+| 文档 | 说明 | 路径 |
+|------|------|------|
+| 🤖 AI功能说明 | Claude AI集成详细说明 | [docs/04-功能开发报告/AI功能说明.md](docs/04-功能开发报告/AI功能说明.md) |
+| 📊 产品原型设计 | 完整的MVP产品设计文档 | [docs/04-功能开发报告/社恐最新极简MVP产品原型设计文档.md](docs/04-功能开发报告/社恐最新极简MVP产品原型设计文档.md) |
+| 💡 AI生成示例 | AI分析报告生成示例 | [docs/04-功能开发报告/AI生成示例.md](docs/04-功能开发报告/AI生成示例.md) |
+
+### 部署文档
+
+| 文档 | 说明 | 路径 |
+|------|------|------|
+| 🚀 宝塔面板部署 | 完整的宝塔部署流程 | [宝塔面板部署清单.md](./宝塔面板部署清单.md) |
+| ⚙️ Nginx配置 | Nginx反向代理配置 | [nginx.conf](./nginx.conf) |
+| 🛠️ PM2配置 | 进程管理器配置 | [backend/ecosystem.config.js](backend/ecosystem.config.js) |
+
+### 后端文档
+
+| 文档 | 说明 | 路径 |
+|------|------|------|
+| 📖 后端 README | 后端API完整说明 | [backend/README.md](backend/README.md) |
+| 🗄️ 数据库脚本 | 完整数据库SQL文件 | [backend/database_complete.sql](backend/database_complete.sql) |
+| 🔧 环境变量模板 | 后端环境配置模板 | [backend/.env.example](backend/.env.example) |
+
+### 开发历史文档
+
+- **03-修复报告** (26个文件) - 详细的bug修复记录
+- **05-修复报告** (16个文件) - UI优化和性能提升记录
+- **09-项目经理工作汇报** (3个文件) - 项目管理文档
+
+📖 完整文档索引：[docs/INDEX.md](docs/INDEX.md)
+
+---
+
+## 💡 核心功能说明
+
+### 激活码验证系统
+
+#### 双存储方案
+
+**MySQL方案**（推荐用于生产）：
 ```javascript
-// 格式：XXXX-XXXX-XXXX（数字+大写字母）
-// 自动格式化输入
-// 实时验证格式
+// 后端验证逻辑
+const result = await db.query(
+  'SELECT * FROM activation_codes WHERE code = ? AND is_active = 1',
+  [code]
+);
 ```
 
-### 答题系统
-- LocalStorage自动保存
-- 支持断点续答
-- 防止未答题提交
+**Supabase方案**（云存储可选）：
+```javascript
+// 使用Supabase客户端
+const { data, error } = await supabase
+  .from('activation_codes')
+  .select('*')
+  .eq('code', code)
+  .single();
+```
 
-### 计分系统
-- 每题1-5分
-- 总分30-150分
-- 等级：轻度(≤60) / 中度(61-90) / 重度(91-120) / 极重度(>120)
+📖 详细说明：[后端API文档](backend/README.md)
 
-### 类型判断
-基于6个维度的分数组合，智能判断社恐类型：
-- **预演型**：预期焦虑高 + 社交反刍高
-- **回避型**：回避行为高 + 社交场景恐惧高
-- **表演型**：生理反应高 + 自我效能低
-- **综合型**：各维度均衡分布
+### 计分和报告生成
+
+#### 计分算法
+
+```javascript
+// 每题1-5分
+const totalScore = answers.reduce((sum, answer) => sum + answer.score, 0);
+
+// 计算各维度得分
+const dimensions = {
+  socialFear: calculateDimensionScore(answers, [1, 8, 15, 22, 29]),
+  avoidance: calculateDimensionScore(answers, [2, 9, 16, 23, 30]),
+  anticipatory: calculateDimensionScore(answers, [3, 10, 17, 24, 31]),
+  // ... 其他维度
+};
+```
+
+#### 等级判断
+
+```javascript
+function getLevel(totalScore) {
+  if (totalScore <= 70) return '轻度';
+  if (totalScore <= 105) return '中度';
+  if (totalScore <= 140) return '重度';
+  return '极重度';
+}
+```
+
+#### 类型判断
+
+基于8个维度的分数组合，使用决策树算法判断社恐类型：
+
+```javascript
+function getType(dimensions) {
+  if (dimensions.anticipatory >= 15 && dimensions.rumination >= 15) {
+    return {
+      id: 'rehearsal',
+      name: '预演型',
+      features: ['事前过度思虑', '完美主义倾向']
+    };
+  }
+  // ... 其他类型判断逻辑
+}
+```
+
+### AI分析集成
+
+#### 工作流程
+
+1. **答题完成** → 收集用户答案和维度得分
+2. **数据准备** → 构建AI分析提示词
+3. **调用Claude API** → 发送请求到Claude 4.5 Sonnet
+4. **智能降级** → AI服务不可用时使用本地规则
+5. **结果展示** → 格式化并展示个性化分析
+
+#### 示例代码
+
+```javascript
+// AI分析API调用
+const analysis = await fetch('/api/ai/analyze', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    answers: userAnswers,
+    dimensions: dimensionScores,
+    totalScore: totalScore
+  })
+});
+
+const result = await analysis.json();
+```
+
+📖 详细说明：[AI功能说明文档](docs/04-功能开发报告/AI功能说明.md)
+
+---
+
+## 📝 开发说明
+
+### 开发环境配置
+
+#### 推荐 IDE 配置
+
+- **VS Code** + 推荐扩展:
+  - Vue - Official (Vue语言支持)
+  - ESLint (代码检查)
+  - Prettier (代码格式化)
+  - Tailwind CSS IntelliSense
+  - MySQL (数据库管理)
+
+#### 代码规范
+
+```bash
+# 运行代码检查
+npm run lint
+
+# 自动修复代码风格
+npm run lint:fix
+
+# 代码格式化
+npm run format
+```
+
+### 自定义配置
+
+#### 修改激活码验证逻辑
+
+生产环境需要修改 `src/utils/activation.js` 中的验证函数：
+
+```javascript
+export async function verifyActivationCode(code) {
+  // 生产环境：调用后端API
+  const response = await fetch('/api/activation/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code })
+  });
+  const data = await response.json();
+  return data.valid;
+
+  // 开发环境：任何格式正确的激活码都通过
+  // return /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code);
+}
+```
+
+#### 添加新的社恐类型
+
+在 `src/utils/scoring.js` 中添加判断逻辑：
+
+```javascript
+function getType(dimensions) {
+  // 添加新类型判断
+  if (dimensions.newDimension >= threshold && dimensions.anotherDimension >= threshold) {
+    return {
+      id: 'new-type',
+      name: '新类型名称',
+      englishName: 'New Type',
+      features: ['特征1', '特征2', '特征3'],
+      rootCauses: ['原因1', '原因2'],
+      positiveReframe: '积极重构描述'
+    };
+  }
+  // 现有类型判断...
+}
+```
+
+#### 自定义配色方案
+
+在 `src/styles/themes.css` 中添加新主题：
+
+```css
+.scheme-custom {
+  /* 主色调 */
+  --primary: #your-color;
+  --primary-light: #your-color;
+  --primary-dark: #your-color;
+
+  /* 背景色 */
+  --bg-main: #your-color;
+  --bg-card: #your-color;
+  --bg-hover: #your-color;
+
+  /* 文字颜色 */
+  --text-primary: #your-color;
+  --text-secondary: #your-color;
+  --text-hint: #your-color;
+
+  /* 边框和分隔线 */
+  --border-color: #your-color;
+  --divider-color: #your-color;
+
+  /* 特殊状态 */
+  --success: #your-color;
+  --warning: #your-color;
+  --error: #your-color;
+}
+```
+
+然后在 `src/composables/useColorScheme.js` 中注册：
+
+```javascript
+const schemes = [
+  // 现有方案...
+  {
+    id: 'custom',
+    name: '自定义主题',
+    class: 'scheme-custom'
+  }
+];
+```
+
+---
+
+## 🚀 部署方案
+
+### 宝塔面板部署（推荐）
+
+完整的生产环境部署流程，包括前后端、数据库、Nginx配置、PM2进程管理。
+
+📖 **详细步骤**：[宝塔面板部署清单](./宝塔面板部署清单.md)
+
+**部署概览**：
+1. 服务器环境准备（宝塔面板 + Node.js + MySQL + Nginx）
+2. 数据库创建和初始化
+3. 后端部署（PM2进程管理）
+4. 前端构建和部署
+5. Nginx反向代理配置
+6. SSL证书配置（可选）
+7. 域名绑定和解析
+
+### Docker 部署
+
+#### 前端 Dockerfile
+
+```dockerfile
+FROM node:16-alpine as build
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+#### 后端 Dockerfile
+
+```dockerfile
+FROM node:16-alpine
+WORKDIR /app
+COPY backend/package*.json ./
+RUN npm install --production
+COPY backend/ .
+EXPOSE 3001
+CMD ["node", "server.js"]
+```
+
+#### Docker Compose
+
+```yaml
+version: '3.8'
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "3001:3001"
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=your_password
+      - DB_NAME=social_anxiety_assessment
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=your_password
+      - MYSQL_DATABASE=social_anxiety_assessment
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/database_complete.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  mysql_data:
+```
+
+部署命令：
+```bash
+docker-compose up -d
+```
+
+### 环境变量配置
+
+#### 生产环境 (.env.production)
+
+```env
+# 前端
+VITE_API_BASE_URL=https://api.yourdomain.com
+VITE_APP_TITLE=社恐程度专业测评
+VITE_ENABLE_AI=true
+
+# 后端
+NODE_ENV=production
+PORT=3001
+DB_HOST=localhost
+DB_USER=your_db_user
+DB_PASSWORD=your_secure_password
+DB_NAME=social_anxiety_assessment
+CLAUDE_API_KEY=sk-ant-xxxxx
+CLAUDE_API_URL=https://api.anthropic.com/v1/messages
+JWT_SECRET=your_jwt_secret_key
+RATE_LIMIT_WINDOW=15
+RATE_LIMIT_MAX_REQUESTS=100
+```
+
+---
 
 ## 📊 数据流程
 
 ```
-用户输入激活码 
-  → 验证通过 
-    → 开始测评（30题）
-      → 实时保存答案
-        → 提交测评
-          → 计算分数
-            → 判断类型
-              → 生成报告
-                → 展示结果
+用户访问
+  ↓
+已验证激活码?
+  ├─ 否 → P1: 输入激活码 → 验证激活码
+  │         ├─ 失败 → 返回输入
+  │         └─ 成功 → P2: 开始测评
+  └─ 是 → P2: 开始测评
+            ↓
+       答题 (35题)
+            ↓
+    LocalStorage自动保存
+            ↓
+       答题完成?
+  ├─ 否 → 继续答题
+  └─ 是 → 提交测评
+            ↓
+    计算总分和维度得分
+            ↓
+      AI服务可用?
+  ├─ 是 → 调用AI API
+  └─ 否 → 使用本地规则
+            ↓
+      生成个性化分析
+            ↓
+    P3: 展示报告
+      ├─ 雷达图可视化
+      └─ 切换配色主题
 ```
-
-## 🔐 数据安全
-
-- 所有数据存储在本地LocalStorage
-- 不上传任何个人信息
-- 仅在用户设备上处理
-- 可随时清除浏览器数据
-
-## 📝 开发说明
-
-### 激活码验证逻辑
-
-当前为开发阶段，任何格式正确的激活码（XXXX-XXXX-XXXX）都可通过验证。
-
-生产环境需要修改 `src/utils/activation.js` 中的 `verifyActivationCode` 函数，对接真实的后端API：
-
-```javascript
-export async function verifyActivationCode(code) {
-  const response = await fetch('/api/verify-code', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code })
-  })
-  const data = await response.json()
-  return data.valid
-}
-```
-
-### 添加新的社恐类型
-
-在 `src/utils/scoring.js` 的 `getType` 函数中添加新的判断逻辑：
-
-```javascript
-if (dimensions.某维度 >= 阈值 && dimensions.另一维度 >= 阈值) {
-  return {
-    id: 'new-type',
-    name: '新类型名称',
-    englishName: 'New Type',
-    features: [...],
-    rootCauses: [...],
-    positiveReframe: '...'
-  }
-}
-```
-
-### 自定义配色方案
-
-在 `src/styles/themes.css` 中添加新的配色类：
-
-```css
-.scheme-new {
-  --primary: #颜色值;
-  --bg-main: #颜色值;
-  /* ... 其他颜色变量 */
-}
-```
-
-## 🎯 路线图
-
-- [x] 基础框架搭建
-- [x] 激活页实现
-- [x] 测评页实现
-- [x] 报告页实现
-- [x] 配色系统
-- [x] 30道题目和文案
-- [ ] 后端API对接
-- [ ] 激活码管理系统
-- [ ] 数据分析后台
-- [ ] 分享功能（V2.0）
-- [ ] 历史记录（V2.0）
-
-## 📄 许可证
-
-MIT License
-
-## 👨‍💻 贡献
-
-欢迎提交Issue和Pull Request
 
 ---
 
-**开发日期**: 2025年11月3日  
-**版本**: V1.0 极简MVP版  
+## 🔐 数据安全与隐私
+
+### 数据存储
+
+- **LocalStorage**: 用户答题数据仅存储在本地浏览器
+- **不上传隐私**: 不向服务器上传任何个人隐私信息
+- **本地处理**: 所有计分和分析在客户端完成（AI分析除外）
+- **用户控制**: 用户可随时清除浏览器数据
+
+### 安全措施
+
+| 安全措施 | 说明 |
+|---------|------|
+| **激活码验证** | 防止未授权访问 |
+| **速率限制** | API请求速率限制，防止滥用 |
+| **密码加密** | 管理员密码使用bcrypt加密 |
+| **CORS限制** | 跨域资源限制 |
+| **SQL防注入** | 使用参数化查询 |
+| **XSS防护** | 输入验证和输出转义 |
+| **HTTPS** | 生产环境使用SSL/TLS加密 |
+
+### API速率限制
+
+```javascript
+// 每个IP每15分钟最多100个请求
+const rateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: '请求过于频繁，请稍后再试'
+});
+```
+
+---
+
+## ❓ 常见问题
+
+### 安装和配置
+
+**Q: npm install 失败怎么办？**
+
+A: 尝试以下解决方案：
+```bash
+# 清除缓存
+npm cache clean --force
+
+# 使用淘宝镜像
+npm install --registry=https://registry.npmmirror.com
+
+# 或使用pnpm
+pnpm install
+```
+
+**Q: 数据库连接失败？**
+
+A: 检查以下配置：
+1. MySQL服务是否启动
+2. `backend/.env` 中的数据库配置是否正确
+3. 数据库用户权限是否正确
+4. 防火墙是否阻止了3306端口
+
+### 功能使用
+
+**Q: 激活码验证失败？**
+
+A: 检查：
+1. 激活码格式是否正确（XXXX-XXXX-XXXX）
+2. 数据库中是否存在该激活码
+3. 激活码是否已过期或达到使用次数限制
+4. 后端服务是否正常运行
+
+**Q: AI分析不可用？**
+
+A: 检查：
+1. `backend/.env` 中的 `CLAUDE_API_KEY` 是否配置
+2. Claude API服务是否正常
+3. 网络连接是否正常
+4. 查看后端日志获取详细错误信息
+
+### 部署问题
+
+**Q: 生产环境部署后无法访问？**
+
+A: 检查：
+1. Nginx配置是否正确
+2. PM2进程是否正常运行（`pm2 status`）
+3. 防火墙端口是否开放
+4. 域名DNS解析是否正确
+
+**Q: 前后端跨域问题？**
+
+A: 确保：
+1. 后端启用CORS配置
+2. Nginx反向代理配置正确
+3. 前端API地址配置正确
+
+更多问题请查看：[项目Issues](https://github.com/your-repo/issues)
+
+---
+
+## 🛣️ 版本历史
+
+### v1.2.0 (2025-11-07) - 当前版本
+
+**新功能**：
+- ✨ 集成Claude 4.5 Sonnet AI分析引擎
+- 🎨 新增国风配色主题
+- 📊 升级到8维度分析体系
+- 👨‍💼 完整的管理后台系统
+- 🔒 激活码每日使用次数限制
+- 📱 移动端UI全面优化
+
+**优化改进**：
+- ⚡ 性能优化，报告加载速度提升50%
+- 🎯 AI分析质量提升，更个性化
+- 💾 数据持久化改进
+- 🔧 后端API结构优化
+
+**Bug修复**：
+- 修复激活码验证时区问题
+- 修复雷达图在某些浏览器显示异常
+- 修复管理后台权限问题
+
+### v1.1.0 (2025-11-05)
+
+**新功能**：
+- 新增服务商管理功能
+- 新增AI提示词优化
+
+**改进**：
+- UI界面优化
+- 系统性能提升
+
+### v1.0.0 (2025-11-03) - 初始版本
+
+**核心功能**：
+- 激活码验证系统
+- 35题测评体系
+- 8维度分析
+- 雷达图可视化
+- 报告生成
+
+📖 完整更新日志：[CHANGELOG.md](./CHANGELOG.md)（待创建）
+
+---
+
+## 🎯 开发路线图
+
+### 已完成 (v1.0 - v1.2)
+
+- [x] 基础框架搭建
+- [x] 激活码验证系统
+- [x] 35题测评体系
+- [x] 8维度分析算法
+- [x] 报告页面和雷达图
+- [x] 4套配色主题系统
+- [x] Claude AI集成
+- [x] 管理后台系统
+- [x] MySQL数据库集成
+- [x] 移动端适配
+
+### 进行中 (v1.3)
+
+- [ ] API文档完善（OpenAPI规范）
+- [ ] 单元测试和集成测试
+- [ ] 性能监控系统
+- [ ] 错误日志收集
+
+### 计划中 (v2.0)
+
+- [ ] 报告分享功能
+- [ ] 历史记录查询
+- [ ] 数据分析看板
+- [ ] 多语言支持（英文）
+- [ ] 微信小程序版本
+- [ ] Docker一键部署
+- [ ] CI/CD自动化部署
+
+### 远期规划 (v3.0+)
+
+- [ ] 用户账号系统
+- [ ] 专业咨询师入驻
+- [ ] 在线咨询预约
+- [ ] 个性化训练计划
+- [ ] 社区交流功能
+
+---
+
+## 📄 许可证
+
+本项目采用 [MIT License](https://opensource.org/licenses/MIT) 开源许可证。
+
+```
+MIT License
+
+Copyright (c) 2025 CS_shekong Project
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
+## 👥 贡献
+
+欢迎贡献代码、报告问题和提出建议！
+
+### 如何贡献
+
+1. **Fork** 本项目
+2. 创建您的特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交您的更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启一个 **Pull Request**
+
+### 贡献指南
+
+- 遵循现有代码风格
+- 提交前运行 `npm run lint` 和 `npm run test`
+- 为新功能添加文档
+- 提交信息清晰明确
+
+📖 详细贡献指南：[CONTRIBUTING.md](./CONTRIBUTING.md)（待创建）
+
+---
+
+## 🙏 致谢
+
+### 技术支持
+
+- **[Vue.js](https://vuejs.org/)** - 渐进式JavaScript框架
+- **[Vite](https://vitejs.dev/)** - 下一代前端构建工具
+- **[Claude AI](https://www.anthropic.com/)** - AI分析引擎
+- **[ECharts](https://echarts.apache.org/)** - 数据可视化
+- **[Naive UI](https://www.naiveui.com/)** - Vue 3 组件库
+
+### 参考资料
+
+- **SAS社交焦虑量表** - 专业心理测评基础
+- **心理学理论** - 社交焦虑的维度分析理论
+
+---
+
+## 📞 联系方式
+
+- **项目主页**: [GitHub Repository](#)
+- **问题反馈**: [Issues](#)
+- **文档中心**: [docs/INDEX.md](docs/INDEX.md)
+- **在线演示**: [Demo](#)
+
+---
+
+<div align="center">
+
+**⭐ 如果这个项目对您有帮助，请给我们一个Star！⭐**
+
+Made with ❤️ by CS_shekong Team
+
+**开发日期**: 2025年11月3日 - 至今
+**当前版本**: v1.2.0
 **设计文档**: [查看完整设计文档](./docs/04-功能开发报告/社恐最新极简MVP产品原型设计文档.md)
+
+</div>
 

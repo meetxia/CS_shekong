@@ -2,9 +2,14 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const { testConnection, initDatabase } = require('./db');
+
+// 导入中间件
+const sanitize = require('./middleware/sanitize');
+const performance = require('./middleware/performance');
 
 // 导入路由模块
 const { router: authRouter } = require('./routes/authRoutes');
@@ -24,9 +29,44 @@ app.use(cors()); // 允许跨域
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// 输入净化中间件（防XSS和SQL注入）
+app.use(sanitize);
+
+// 性能监控中间件
+app.use(performance);
+
+// 通用请求频率限制
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15分钟
+  max: 100, // 最多100个请求
+  message: { success: false, error: '请求过于频繁，请稍后再试' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// 激活码验证限流（更严格）
+const activationLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1分钟
+  max: 10, // 最多10次
+  message: { success: false, error: '激活码验证请求过于频繁' },
+  skipSuccessfulRequests: false,
+});
+
+// AI生成限流
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1分钟
+  max: 5, // 最多5次
+  message: { success: false, error: 'AI生成请求过于频繁，请稍后再试' },
+});
+
+// 应用通用限流
+app.use('/api/', generalLimiter);
+
 // 请求日志
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  }
   next();
 });
 
@@ -44,10 +84,12 @@ app.get('/health', (req, res) => {
 // ============================================
 // 路由注册
 // ============================================
-app.use('/api/admin', authRouter);      // 管理员认证路由: /api/admin/login, /api/admin/logout 等
-app.use('/api/admin', adminRouter);     // 管理后台路由: /api/admin/codes, /api/admin/stats 等
+app.use('/api/admin', authRouter);      // 管理员认证路由
+app.use('/api/admin', adminRouter);     // 管理后台路由
 app.use('/api/admin/ai-config', aiConfigRouter); // AI配置管理路由
+app.use('/api/activation/verify', activationLimiter); // 激活码验证限流
 app.use('/api/activation', activationRouter); // 激活码验证路由
+app.use('/api/ai/generate', aiLimiter); // AI生成限流
 app.use('/api/ai', aiRouter);           // AI分析路由
 app.use('/api/stats', statsRouter);     // 统计数据路由
 

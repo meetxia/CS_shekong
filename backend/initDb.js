@@ -4,6 +4,14 @@ const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 async function initDatabase() {
+  // 验证必需的环境变量
+  const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+  for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+      throw new Error(`❌ 缺少必需的环境变量: ${envVar}`);
+    }
+  }
+
   let connection;
   
   try {
@@ -11,10 +19,10 @@ async function initDatabase() {
     
     // 先连接到MySQL服务器（不指定数据库）
     connection = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 3306,
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || 'mojz168168',
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
       multipleStatements: true
     });
     
