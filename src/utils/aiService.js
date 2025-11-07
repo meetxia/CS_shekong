@@ -9,8 +9,11 @@ export async function generatePersonalizedAnalysis(report, answers, basicInfo) {
   const startTime = Date.now()
 
   try {
+    // 生产环境使用空字符串（相对路径），开发环境使用完整地址
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''
+
     console.log('🚀 [AI服务] 开始调用后端AI接口...')
-    console.log(`📡 [AI服务] 后端地址: ${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/ai/generate`)
+    console.log(`📡 [AI服务] 后端地址: ${apiBaseUrl || '(相对路径)'}/api/ai/generate`)
 
     // 调用后端AI接口
     const controller = new AbortController()
@@ -22,7 +25,6 @@ export async function generatePersonalizedAnalysis(report, answers, basicInfo) {
     try {
       console.log('📤 [AI服务] 正在发送请求到后端...')
 
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
       const response = await fetch(`${apiBaseUrl}/api/ai/generate`, {
         method: 'POST',
         headers: {

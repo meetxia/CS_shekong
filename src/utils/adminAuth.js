@@ -1,5 +1,6 @@
 // 管理员认证工具函数
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
+// 生产环境使用空字符串，利用 Nginx 代理；开发环境使用 http://localhost:3001
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || ''
 const TOKEN_KEY = 'admin_token'
 const ADMIN_INFO_KEY = 'admin_info'
 

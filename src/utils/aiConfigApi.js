@@ -2,7 +2,10 @@
  * AI配置管理API
  */
 
-const API_BASE = 'http://localhost:3001/api/admin/ai-config'
+// 生产环境使用相对路径，开发环境使用完整地址
+const API_BASE = import.meta.env.VITE_BACKEND_URL
+  ? `${import.meta.env.VITE_BACKEND_URL}/api/admin/ai-config`
+  : '/api/admin/ai-config'
 
 /**
  * 获取认证token

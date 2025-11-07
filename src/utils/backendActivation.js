@@ -1,7 +1,8 @@
 // 本地后端激活码API调用
 import { getAuthHeaders } from './adminAuth'
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
+// 生产环境使用空字符串（相对路径），开发环境使用完整地址
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || ''
 
 /**
  * 验证激活码

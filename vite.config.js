@@ -22,14 +22,9 @@ export default defineConfig({
     }
   },
   build: {
-    // 生产环境优化
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true, // 移除console
-        drop_debugger: true
-      }
-    },
+    // 生产环境优化 - 使用 esbuild 以减少内存占用
+    minify: 'esbuild',
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         // 代码分割

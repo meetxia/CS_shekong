@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS activation_records (
     user_device_id VARCHAR(255) NOT NULL COMMENT '设备标识',
     activated_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '激活时间(倒计时起点)',
     expires_at DATETIME NOT NULL COMMENT '过期时间(倒计时终点)',
-    usage_by_date JSON DEFAULT '{}' COMMENT '按日期统计使用次数 {"2025-11-06": 2}',
+    usage_by_date JSON COMMENT '按日期统计使用次数 {"2025-11-06": 2}',
     
     INDEX idx_code_id (code_id),
     INDEX idx_activation_code (activation_code),

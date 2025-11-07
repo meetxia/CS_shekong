@@ -49,13 +49,6 @@
       <div class="login-footer">
         <router-link to="/" class="text-secondary">← 返回前台</router-link>
       </div>
-      
-      <div class="default-account-tip">
-        <p class="text-secondary">默认账号：admin / admin123</p>
-        <p class="text-secondary" style="font-size: 12px; margin-top: 4px;">
-          ⚠️ 首次登录请及时修改密码
-        </p>
-      </div>
     </div>
   </div>
 </template>
@@ -179,21 +172,6 @@ async function handleLogin() {
 
 .login-footer a:hover {
   text-decoration: underline;
-}
-
-.default-account-tip {
-  margin-top: 24px;
-  padding: 16px;
-  background-color: #fff3cd;
-  border: 1px solid #ffc107;
-  border-radius: 6px;
-  text-align: center;
-}
-
-.default-account-tip p {
-  margin: 0;
-  font-size: 14px;
-  color: #856404;
 }
 </style>
 

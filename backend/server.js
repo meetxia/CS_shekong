@@ -22,6 +22,9 @@ const aiConfigRouter = require('./routes/aiConfigRoutes');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// 信任代理（重要：让 Express 正确处理 Nginx 代理的请求）
+app.set('trust proxy', true);
+
 // ============================================
 // 中间件配置
 // ============================================
