@@ -69,7 +69,7 @@ export async function verifyActivationCode(code) {
         let daysLeft = 7
         if (expiresAt) {
           const msLeft = expiresAt.getTime() - Date.now()
-          daysLeft = Math.max(0, Math.ceil(msLeft / (24 * 60 * 60 * 1000)))
+          daysLeft = Math.max(0, Math.floor(msLeft / (24 * 60 * 60 * 1000)))
         }
         
         // 计算今日剩余次数
@@ -189,11 +189,11 @@ function saveActivationFromBackend(code, backendData) {
     expiresAt = new Date(now)
     expiresAt.setDate(expiresAt.getDate() + 7)
   }
-  
+
   // 计算剩余天数
   const msLeft = expiresAt.getTime() - now
-  const daysLeft = Math.max(0, Math.ceil(msLeft / (24 * 60 * 60 * 1000)))
-  
+  const daysLeft = Math.max(0, Math.floor(msLeft / (24 * 60 * 60 * 1000)))
+
   // 计算今日剩余次数
   const todayUsage = backendData.todayUsage || 0
   const dailyLimit = backendData.dailyLimit || 3
@@ -594,7 +594,7 @@ export async function getActivationStatus() {
   const now = new Date()
   const expiresAt = new Date(usage.expiresAt)
   const msLeft = expiresAt - now
-  const daysLeft = Math.max(0, Math.ceil(msLeft / (24 * 60 * 60 * 1000)))
+  const daysLeft = Math.max(0, Math.floor(msLeft / (24 * 60 * 60 * 1000)))
   const expired = msLeft <= 0
 
   const today = todayStr()
