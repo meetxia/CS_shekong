@@ -81,7 +81,7 @@ async function verifyActivationCode(inputCode, deviceId = null) {
     let daysLeft = code.validity_days;
     if (earliestExpiresAt) {
       const msLeft = earliestExpiresAt.getTime() - Date.now();
-      daysLeft = Math.max(0, Math.ceil(msLeft / (24 * 60 * 60 * 1000)));
+      daysLeft = Math.max(0, Math.floor(msLeft / (24 * 60 * 60 * 1000)));
     }
 
     // 如果今日使用次数已达上限，返回详细信息（包括剩余天数）
@@ -104,9 +104,9 @@ async function verifyActivationCode(inputCode, deviceId = null) {
     );
 
     if (records.length > 0) {
-      // 当前设备已激活，检查是否过期
+      // 当前设备已激活，检查是否过期（基于最早的激活记录）
       const record = records[0];
-      if (record.expires_at && new Date(record.expires_at) < new Date()) {
+      if (earliestExpiresAt && earliestExpiresAt < new Date()) {
         return { valid: false, error: '您的激活已过期' };
       }
 
@@ -114,7 +114,7 @@ async function verifyActivationCode(inputCode, deviceId = null) {
         valid: true,
         isActivated: true,
         recordId: record.id,
-        expiresAt: record.expires_at,
+        expiresAt: earliestExpiresAt, // 🔧 返回最早的过期时间，而不是当前设备的
         todayUsage: totalUsedToday, // 返回所有设备的总使用次数
         dailyLimit: code.daily_limit
       };
@@ -137,15 +137,19 @@ async function verifyActivationCode(inputCode, deviceId = null) {
       [code.id]
     );
 
+    // 🔧 如果是第一个设备激活，earliestExpiresAt 就是刚创建的 expiresAt
+    // 否则，使用之前找到的 earliestExpiresAt
+    const finalExpiresAt = earliestExpiresAt || expiresAt;
+
     return {
       valid: true,
       isActivated: false,
       recordId: result.insertId,
-      expiresAt,
+      expiresAt: finalExpiresAt, // 🔧 返回最早的过期时间
       todayUsage: totalUsedToday, // 返回所有设备的总使用次数
       dailyLimit: code.daily_limit
     };
-    
+
   } catch (error) {
     console.error('验证激活码失败:', error);
     return { valid: false, error: '系统错误，请稍后重试' };
@@ -174,10 +178,16 @@ async function recordUsage(recordId) {
     
     const record = records[0];
     const dailyLimit = record.daily_limit || 3;
-    
-    // 检查激活是否过期
+
+    // 🔧 【重要修复】查找该激活码所有设备中最早的 expires_at
+    const [earliestRecord] = await pool.query(
+      'SELECT expires_at FROM activation_records WHERE code_id = ? ORDER BY expires_at ASC LIMIT 1',
+      [record.code_id]
+    );
+
+    // 检查激活是否过期（基于最早的激活记录）
     const now = new Date();
-    const expiresAt = record.expires_at ? new Date(record.expires_at) : null;
+    const expiresAt = earliestRecord[0]?.expires_at ? new Date(earliestRecord[0].expires_at) : null;
     const msLeft = expiresAt ? (expiresAt - now) : 0;
     const expired = msLeft <= 0;
     
@@ -226,23 +236,24 @@ async function recordUsage(recordId) {
        WHERE id = ?`,
       [JSON.stringify(usageByDate), recordId]
     );
-    
+
     // 计算剩余天数和次数（基于所有设备的总使用次数）
-    const daysLeft = Math.max(0, Math.ceil(msLeft / (24 * 60 * 60 * 1000)));
+    const daysLeft = Math.max(0, Math.floor(msLeft / (24 * 60 * 60 * 1000)));
     const newTotalUsedToday = totalUsedToday + 1; // 加上刚才记录的这一次
     const remainingToday = Math.max(0, dailyLimit - newTotalUsedToday);
-    
+
+
     console.log(`✅ [记录使用] 成功！所有设备今日已用 ${newTotalUsedToday}/${dailyLimit} 次，剩余 ${remainingToday} 次`);
-    
-    return { 
+
+    return {
       success: true,
       daysLeft,
       remainingToday,
       expired,
-      expiresAt: record.expires_at,
+      expiresAt: expiresAt, // 🔧 返回最早的过期时间
       recorded: true
     };
-    
+
   } catch (error) {
     console.error('记录使用失败:', error);
     return { success: false, error: error.message };
@@ -274,12 +285,19 @@ async function getActivationStatusByCode(codeWithHyphen, deviceId) {
       return { success: false, error: '尚未在该设备激活' }
     }
 
-    const rec = records[0]
+    // 🔧 【重要修复】查找该激活码所有设备中最早的 expires_at，避免清除缓存后时间被刷新
+    const [allRecordsForCode] = await pool.query(
+      'SELECT expires_at FROM activation_records WHERE activation_code = ? ORDER BY expires_at ASC LIMIT 1',
+      [norm]
+    )
+
     const now = new Date()
-    const expiresAt = rec.expires_at ? new Date(rec.expires_at) : null
-    const msLeft = expiresAt ? (expiresAt - now) : 0
-    const daysLeft = Math.max(0, Math.ceil(msLeft / (24 * 60 * 60 * 1000)))
+    const earliestExpiresAt = allRecordsForCode[0]?.expires_at ? new Date(allRecordsForCode[0].expires_at) : null
+    const msLeft = earliestExpiresAt ? (earliestExpiresAt - now) : 0
+    const daysLeft = Math.max(0, Math.floor(msLeft / (24 * 60 * 60 * 1000)))
     const expired = msLeft <= 0
+
+    console.log(`🔍 [修复后] 最早expires_at: ${earliestExpiresAt}, now: ${now}, msLeft: ${msLeft}, daysLeft: ${daysLeft}`)
 
     const today = new Date().toISOString().split('T')[0]
     
