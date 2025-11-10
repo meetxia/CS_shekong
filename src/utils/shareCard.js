@@ -726,7 +726,10 @@ function showMobileImageWithThemeSwitch(images) {
       </div>
 
       <div class="mobile-preview-footer">
-        <p class="preview-hint">💡 长按图片即可保存到相册</p>
+        <button class="mobile-save-btn" id="mobileSaveBtn">
+          <span class="save-text">点击保存图片</span>
+        </button>
+        <p class="preview-hint">💡 长按图片也可保存到相册</p>
       </div>
     </div>
   `;
@@ -755,6 +758,32 @@ function showMobileImageWithThemeSwitch(images) {
         previewImage.style.opacity = '1';
       }, 200);
     });
+  });
+
+  // 保存按钮点击事件
+  const saveBtn = previewModal.querySelector('#mobileSaveBtn');
+  saveBtn.addEventListener('click', () => {
+    const currentImage = images[currentTheme];
+    const timestamp = new Date().getTime();
+    const filename = `社恐测评-${currentTheme === 'light' ? '白底' : '黑底'}-${timestamp}.png`;
+    
+    // 尝试下载图片
+    try {
+      downloadImage(currentImage, filename);
+      
+      // 更新按钮状态
+      const originalHTML = saveBtn.innerHTML;
+      saveBtn.innerHTML = '<span class="save-icon">✅</span><span class="save-text">已保存</span>';
+      saveBtn.disabled = true;
+      
+      setTimeout(() => {
+        saveBtn.innerHTML = originalHTML;
+        saveBtn.disabled = false;
+      }, 2000);
+    } catch (error) {
+      console.error('保存失败:', error);
+      alert('保存失败，请尝试长按图片保存');
+    }
   });
 
   // 关闭按钮

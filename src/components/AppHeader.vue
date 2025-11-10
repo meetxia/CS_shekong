@@ -186,16 +186,12 @@ const hasReport = ref(localStorage.getItem('test_report') !== null)
 
 // 获取激活码状态
 const loadActivationStatus = async () => {
-  console.log('[AppHeader] loadActivationStatus 调用, hasActivation:', hasActivation.value)
   if (hasActivation.value) {
     try {
       activationStatus.value = await getActivationStatus()
-      console.log('[AppHeader] 激活状态已更新:', activationStatus.value)
     } catch (e) {
       console.error('[AppHeader] 获取激活码状态失败:', e)
     }
-  } else {
-    console.log('[AppHeader] 未激活，跳过状态加载')
   }
 }
 
@@ -263,7 +259,6 @@ watch(() => route.path, () => {
 
 // 🔧 监听自定义事件，在测评提交后刷新状态
 const handleActivationUpdate = () => {
-  console.log('🔄 [AppHeader] 收到激活状态更新通知，刷新状态...')
   hasActivation.value = checkActivation()
   hasReport.value = localStorage.getItem('test_report') !== null
   loadActivationStatus()
@@ -580,11 +575,47 @@ onBeforeUnmount(() => {
   display: none;
 }
 
+/* iPad专用优化 (768px-1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .header-container {
+    padding-left: 5% !important;
+    padding-right: 5% !important;
+    gap: 12px;
+  }
+  
+  .header-nav {
+    gap: 4px;
+  }
+  
+  .nav-item {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .activation-status {
+    font-size: 11px;
+    padding: 6px 10px;
+    margin-left: 4px;
+  }
+  
+  .logo-text {
+    font-size: 15px;
+  }
+}
+
 /* 测评页面布局：桌面端17%留白 */
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .app-header.assessment-layout .header-container {
     padding-left: 22%;
     padding-right: 22%;
+  }
+}
+
+/* iPad测评页面布局 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .app-header.assessment-layout .header-container {
+    padding-left: 5% !important;
+    padding-right: 5% !important;
   }
 }
 
@@ -612,11 +643,20 @@ onBeforeUnmount(() => {
 }
 
 /* 桌面端：与页面内容保持一致的左右留白（约 17%） */
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .header-container {
     max-width: none;
     padding-left: 22%;
     padding-right: 22%;
+  }
+}
+
+/* iPad专用布局 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .header-container {
+    max-width: none;
+    padding-left: 5%;
+    padding-right: 5%;
   }
 }
 

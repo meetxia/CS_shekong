@@ -15,9 +15,13 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️ Supabase 配置缺失，请检查 .env 文件')
-  console.warn('   需要配置：VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY')
+// 只在开发模式下显示一次警告
+if (import.meta.env.DEV && (!supabaseUrl || !supabaseAnonKey)) {
+  const warned = sessionStorage.getItem('supabase_warning_shown')
+  if (!warned) {
+    console.warn('⚠️ Supabase 配置缺失，如果使用本地后端可忽略此警告')
+    sessionStorage.setItem('supabase_warning_shown', 'true')
+  }
 }
 
 // 创建 Supabase 客户端

@@ -519,7 +519,7 @@ const renderRadarChart = () => {
   })
 
   // 获取当前主题 - 检查body的class
-  const isDark = document.body.className.includes('-dark')
+  const isDark = document.body.className?.includes('-dark') || false
 
   // 雷达图配色方案 - 使用固定的高对比度颜色
   const gridColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)'  // 网格线
@@ -2604,6 +2604,67 @@ onUnmounted(() => {
   .history-level,
   .history-type {
     font-size: 13px;
+  }
+}
+
+/* iPad专用优化 (769px-1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .content-scroll {
+    padding: 80px 5% 40px 5%; /* iPad使用5%左右留白 */
+  }
+  
+  .container {
+    max-width: 90%;
+    padding: 0;
+  }
+  
+  .score-card {
+    padding: 40px 32px;
+    margin-top: 20px;
+  }
+  
+  .score-layout {
+    gap: 24px;
+  }
+  
+  .total-score {
+    font-size: 100px;
+  }
+  
+  .level-name {
+    font-size: 26px;
+  }
+  
+  .section-card {
+    padding: 24px;
+  }
+  
+  .section-title {
+    font-size: 20px;
+  }
+  
+  .radar-chart {
+    height: 320px;
+  }
+  
+  .type-badge {
+    padding: 36px 24px;
+  }
+  
+  .type-name {
+    font-size: 26px;
+  }
+  
+  .dimension-item {
+    padding: 16px;
+  }
+  
+  .dimension-name {
+    font-size: 15px;
+  }
+  
+  .suggestion-item {
+    padding: 16px;
   }
 }
 

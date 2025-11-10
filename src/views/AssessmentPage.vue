@@ -246,7 +246,7 @@ const showBasicInfoPage = ref(true)
 const basicInfo = reactive({})
 const isMobile = ref(window.innerWidth <= 768)
 const basicInfoPageIndex = ref(0)
-const BASIC_INFO_PAGE_SIZE_MOBILE = 3
+const BASIC_INFO_PAGE_SIZE_MOBILE = 2 // 小屏幕每页显示2题，确保开始按钮可见
 const BASIC_INFO_PAGE_SIZE_DESKTOP = 3 // 桌面端每页显示3题
 const currentQuestion = ref(1)
 const answers = reactive({})
@@ -1104,8 +1104,17 @@ onMounted(async () => {
 .assessment-page {
   flex-direction: column;
   height: calc(100vh - 56px); /* 扣除导航高度，消除被挤压 */
-  overflow: hidden;
+  overflow: visible; /* 改为visible，避免底部按钮被裁切 */
   background: var(--bg-main);
+}
+
+/* 移动端使用动态视口高度，避免浏览器UI遮挡 */
+@media (max-width: 768px) {
+  .assessment-page {
+    height: calc(100dvh - 56px); /* 使用动态视口高度 */
+    padding-bottom: env(safe-area-inset-bottom); /* iOS安全区域 */
+    overflow: visible; /* 确保内容不被裁切 */
+  }
 }
 
 /* ========== 基础信息页样式 ========== */
@@ -1114,9 +1123,17 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 80px 20px 40px;
+  padding: 60px 20px 40px; /* 减少顶部padding，为小屏幕留出更多空间 */
   background: var(--bg-main);
   overflow-y: auto;
+}
+
+/* 小屏幕优化：减少padding确保按钮可见 */
+@media (max-width: 480px) {
+  .basic-info-page {
+    padding: 70px 16px 30px;
+    align-items: flex-start; /* 顶部对齐，避免内容被裁切 */
+  }
 }
 
 .basic-info-container {
@@ -1132,24 +1149,56 @@ onMounted(async () => {
   margin-bottom: 12px;
 }
 
+/* 小屏幕优化：减小标题尺寸 */
+@media (max-width: 480px) {
+  .basic-info-title {
+    font-size: 26px;
+    margin-bottom: 8px;
+  }
+}
+
 .basic-info-subtitle {
   font-size: 16px;
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 32px; /* 减少底部间距 */
   line-height: 1.6;
+}
+
+/* 小屏幕优化：减小字体和间距 */
+@media (max-width: 480px) {
+  .basic-info-subtitle {
+    font-size: 14px;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
 }
 
 .basic-info-form {
   display: flex;
   flex-direction: column;
   gap: 32px;
-  margin-bottom: 40px;
+  margin-bottom: 32px; /* 减少底部间距 */
+}
+
+/* 小屏幕优化：减少间距 */
+@media (max-width: 480px) {
+  .basic-info-form {
+    gap: 24px;
+    margin-bottom: 24px;
+  }
 }
 
 .info-question-group {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* 小屏幕优化：减少间距 */
+@media (max-width: 480px) {
+  .info-question-group {
+    gap: 12px;
+  }
 }
 
 .info-label {
@@ -1239,6 +1288,15 @@ onMounted(async () => {
   margin-bottom: 16px;
 }
 
+/* 小屏幕优化：调整按钮尺寸 */
+@media (max-width: 480px) {
+  .btn-start-assessment {
+    height: 50px;
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+}
+
 .btn-start-assessment:not(:disabled):hover {
   filter: brightness(1.1);
   transform: translateY(-2px);
@@ -1267,7 +1325,14 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin: 8px 0 12px;
+  margin: 8px 0 16px; /* 增加底部间距 */
+}
+
+/* 小屏幕优化：调整间距 */
+@media (max-width: 480px) {
+  .basic-info-nav {
+    margin: 12px 0 16px;
+  }
 }
 
 .basic-info-dots {
@@ -1576,6 +1641,13 @@ onMounted(async () => {
   overscroll-behavior: contain;
 }
 
+/* 移动端内容区域优化 */
+@media (max-width: 768px) {
+  .content-area {
+    padding-bottom: max(20px, env(safe-area-inset-bottom)); /* 确保底部有足够空间 */
+  }
+}
+
 /* 桌面端：内容区域左右留白17%，内容宽度65% */
 @media (min-width: 769px) {
   .content-area {
@@ -1734,11 +1806,19 @@ onMounted(async () => {
 
 .action-bar.in-content {
   margin-top: 50px; /* 题目下方约50px */
+  padding-bottom: max(12px, env(safe-area-inset-bottom)); /* iOS安全区域 */
 }
 
 /* 桌面端：底部操作栏也居中显示，左右留白17% */
 @media (min-width: 769px) {
   .action-bar { padding: 12px 17%; }
+}
+
+/* 移动端底部操作栏优化 */
+@media (max-width: 768px) {
+  .action-bar.in-content {
+    margin-bottom: env(safe-area-inset-bottom); /* 确保不被底部UI遮挡 */
+  }
 }
 
 .btn-nav {
@@ -1845,7 +1925,10 @@ onMounted(async () => {
     margin: 12px 0 16px;
   }
 
-  .content-area { padding: 16px; }
+  .content-area { 
+    padding: 16px; 
+    padding-bottom: max(16px, env(safe-area-inset-bottom)); /* 底部安全区域 */
+  }
 
   .question-text {
     font-size: 18px;
@@ -1858,7 +1941,10 @@ onMounted(async () => {
   .option-item { padding: 14px; margin-bottom: 8px; }
   .option-text { font-size: 15px; }
 
-  .action-bar.in-content { margin-top: 28px; }
+  .action-bar.in-content { 
+    margin-top: 28px;
+    margin-bottom: max(8px, env(safe-area-inset-bottom)); /* 底部安全距离 */
+  }
   .btn-nav { height: 44px; font-size: 15px; border-radius: 10px; }
 }
 </style>

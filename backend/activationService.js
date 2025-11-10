@@ -75,7 +75,7 @@ async function verifyActivationCode(inputCode, deviceId = null) {
       }
     }
 
-    console.log(`📊 [验证激活码] 激活码 ${inputCode} 今天所有设备总共使用了 ${totalUsedToday}/${code.daily_limit} 次`);
+    // 记录今日使用情况（仅当达到限制时输出）
 
     // 计算剩余天数（基于最早的激活记录）
     let daysLeft = code.validity_days;
@@ -84,9 +84,8 @@ async function verifyActivationCode(inputCode, deviceId = null) {
       daysLeft = Math.max(0, Math.floor(msLeft / (24 * 60 * 60 * 1000)));
     }
 
-    // 如果今日使用次数已达上限，返回详细信息（包括剩余天数）
+    // 如果今日使用次数已达上限，返回详细信息
     if (totalUsedToday >= code.daily_limit) {
-      console.log(`⚠️ [验证激活码] 今日次数已用完，剩余有效期 ${daysLeft} 天`);
       return {
         valid: false,
         error: `今日使用次数已达上限（${code.daily_limit}次）`,
@@ -211,7 +210,7 @@ async function recordUsage(recordId) {
       totalUsedToday += (usageByDate[today] || 0);
     }
     
-    console.log(`📊 [记录使用前检查] 激活码今天所有设备总共使用了 ${totalUsedToday}/${dailyLimit} 次`);
+    // 检查今日使用情况
     
     if (totalUsedToday >= dailyLimit) {
       return { 
@@ -241,9 +240,6 @@ async function recordUsage(recordId) {
     const daysLeft = Math.max(0, Math.floor(msLeft / (24 * 60 * 60 * 1000)));
     const newTotalUsedToday = totalUsedToday + 1; // 加上刚才记录的这一次
     const remainingToday = Math.max(0, dailyLimit - newTotalUsedToday);
-
-
-    console.log(`✅ [记录使用] 成功！所有设备今日已用 ${newTotalUsedToday}/${dailyLimit} 次，剩余 ${remainingToday} 次`);
 
     return {
       success: true,
@@ -297,7 +293,7 @@ async function getActivationStatusByCode(codeWithHyphen, deviceId) {
     const daysLeft = Math.max(0, Math.floor(msLeft / (24 * 60 * 60 * 1000)))
     const expired = msLeft <= 0
 
-    console.log(`🔍 [修复后] 最早expires_at: ${earliestExpiresAt}, now: ${now}, msLeft: ${msLeft}, daysLeft: ${daysLeft}`)
+    // 计算剩余天数
 
     const today = new Date().toISOString().split('T')[0]
     
@@ -313,7 +309,7 @@ async function getActivationStatusByCode(codeWithHyphen, deviceId) {
       totalUsedToday += (usageByDate[today] || 0)
     }
     
-    console.log(`📊 [激活状态] 激活码 ${norm} 今天所有设备总共使用了 ${totalUsedToday} 次`)
+    // 统计今日使用情况
     
     const dailyLimit = ac.daily_limit || 3
     const remainingToday = Math.max(0, dailyLimit - totalUsedToday)
@@ -324,8 +320,8 @@ async function getActivationStatusByCode(codeWithHyphen, deviceId) {
       remainingToday,
       expired,
       dailyLimit,
-      expiresAt,
-      totalUsage: rec.usage_count || 0
+      expiresAt: earliestExpiresAt,
+      totalUsage: records[0].usage_count || 0
     }
   } catch (error) {
     console.error('获取激活状态失败:', error)

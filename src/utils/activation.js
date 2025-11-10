@@ -514,15 +514,12 @@ function todayStr() {
 // 获取激活状态（剩余天数、今日剩余次数）
 export async function getActivationStatus() {
   const code = getActivationCode()
-  console.log('[getActivationStatus] 开始获取状态, code:', code)
   
   // 本地后端：直接向后端查询最新状态，确保与数据库对齐
   if (USE_LOCAL_BACKEND && code) {
     try {
       const deviceId = getDeviceId()
-      console.log('[getActivationStatus] 调用本地后端, deviceId:', deviceId)
       const result = await fetchActivationStatus(code, deviceId)
-      console.log('[getActivationStatus] 后端返回:', result)
       if (result && result.success) {
         // 更新本地缓存
         let usage = readUsage()
@@ -534,25 +531,18 @@ export async function getActivationStatus() {
           if (result.expiresAt) usage.expiresAt = new Date(result.expiresAt).toISOString()
           usage.syncedDate = todayStr()
           localStorage.setItem('activation_usage', JSON.stringify(usage))
-          console.log('[getActivationStatus] 已更新本地缓存')
-        } else {
-          console.warn('[getActivationStatus] 本地无usage缓存，直接使用后端数据')
         }
         
-        // 返回后端数据（即使本地没有缓存也要返回）
-        const statusData = {
+        // 返回后端数据
+        return {
           daysLeft: result.daysLeft,
           remainingToday: result.remainingToday,
           expired: result.expired,
           dailyLimit: result.dailyLimit || 3
         }
-        console.log('[getActivationStatus] 返回状态数据:', statusData)
-        return statusData
-      } else {
-        console.warn('[getActivationStatus] 后端返回失败或无数据:', result)
       }
     } catch (err) {
-      console.error('[getActivationStatus] 本地后端获取激活状态失败:', err)
+      console.error('[getActivationStatus] 获取激活状态失败:', err)
     }
   }
 
