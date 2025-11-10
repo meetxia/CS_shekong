@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:run": "vitest run",
+    "test:watch": "vitest watch"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.78.0",
@@ -25,6 +27,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
+    "@vitest/coverage-v8": "^4.0.7",
+    "@vitest/ui": "^4.0.7",
     "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.21",
     "happy-dom": "^20.0.10",

@@ -15,7 +15,7 @@ describe('激活码工具函数测试', () => {
 
     it('应该将小写字母转为大写', () => {
       expect(formatActivationCode('test-2024-abcd')).toBe('TEST-2024-ABCD');
-      expect(formatActivationCode('abc-def-ghi')).toBe('ABC-DEF-GHI');
+      expect(formatActivationCode('abcdefghijkl')).toBe('ABCD-EFGH-IJKL');
     });
 
     it('应该移除多余的空格', () => {

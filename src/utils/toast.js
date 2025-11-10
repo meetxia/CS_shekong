@@ -1,4 +1,12 @@
-export function showToast(message, duration = 2000, type = 'info') {
+let currentToast = null
+
+export function showToast(message, type = 'info', duration = 2000) {
+  // 移除之前的toast
+  if (currentToast && document.body.contains(currentToast)) {
+    document.body.removeChild(currentToast)
+  }
+  currentToast = null
+  
   const toast = document.createElement('div')
   toast.className = `toast toast-${type}`
   toast.textContent = message
@@ -35,13 +43,41 @@ export function showToast(message, duration = 2000, type = 'info') {
   `
   
   document.body.appendChild(toast)
+  currentToast = toast
   
   setTimeout(() => {
-    // 使用与进入相对的动画，保持 transform 中的 -50% 水平位移
-    toast.style.animation = 'toastOut 0.25s ease forwards'
-    setTimeout(() => {
-      document.body.removeChild(toast)
-    }, 260)
+    if (currentToast === toast) {
+      // 使用与进入相对的动画，保持 transform 中的 -50% 水平位移
+      toast.style.animation = 'toastOut 0.25s ease forwards'
+      setTimeout(() => {
+        if (document.body.contains(toast)) {
+          document.body.removeChild(toast)
+        }
+        if (currentToast === toast) {
+          currentToast = null
+        }
+      }, 260)
+    }
   }, duration)
+}
+
+// 快捷方法
+export function showSuccess(message, duration = 2000) {
+  showToast(message, 'success', duration)
+}
+
+export function showError(message, duration = 2000) {
+  showToast(message, 'error', duration)
+}
+
+export function showWarning(message, duration = 2000) {
+  showToast(message, 'warning', duration)
+}
+
+export function hideToast() {
+  if (currentToast && document.body.contains(currentToast)) {
+    document.body.removeChild(currentToast)
+    currentToast = null
+  }
 }
 

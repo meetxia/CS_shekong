@@ -1,0 +1,25 @@
+{
+  "all": true,
+  "include": [
+    "src/**/*.{js,vue}",
+    "backend/**/*.js"
+  ],
+  "exclude": [
+    "**/__tests__/**",
+    "**/node_modules/**",
+    "**/*.test.js",
+    "**/*.spec.js",
+    "dist/**",
+    "coverage/**",
+    "docs/**"
+  ],
+  "reporter": [
+    "text",
+    "text-summary",
+    "html",
+    "lcov",
+    "json"
+  ],
+  "report-dir": "./coverage",
+  "temp-dir": "./.nyc_output"
+}
