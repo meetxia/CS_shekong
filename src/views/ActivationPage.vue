@@ -132,7 +132,7 @@ const handleStart = async () => {
 
         // 成功提示（不显示剩余次数，因为还没扣）
         const successMsg = `激活成功！`
-        showToast(successMsg, 1500, 'success')
+        showToast(successMsg, 'success', 2500)
 
         // 触发导航栏等处的激活状态刷新（无需刷新整页）
         try { window.dispatchEvent(new Event('activation-updated')) } catch {}
@@ -151,7 +151,7 @@ const handleStart = async () => {
           // 扣除次数失败
           const errorMsg = usageResult?.error || '无法开始测评'
           error.value = errorMsg
-          showToast(errorMsg, 2500, 'error')
+          showToast(errorMsg, 'error', 2500)
           loading.value = false
           return
         }
@@ -160,7 +160,7 @@ const handleStart = async () => {
 
         // 成功提示（包含剩余次数信息）
         const successMsg = `激活成功！今日剩余 ${usageResult.remainingToday} 次 · 剩余 ${usageResult.daysLeft} 天`
-        showToast(successMsg, 2000, 'success')
+        showToast(successMsg, 'success', 3000)
 
         // 触发导航栏等处的激活状态刷新（无需刷新整页）
         try { window.dispatchEvent(new Event('activation-updated')) } catch {}
@@ -190,11 +190,11 @@ const handleStart = async () => {
       const toastType = errorType === 'DAILY_LIMIT_REACHED' ? 'warning' : 'error'
       const duration = errorType === 'DAILY_LIMIT_REACHED' ? 3000 : 2500
 
-      showToast(toastMsg, duration, toastType)
+      showToast(toastMsg, toastType, duration)
     }
   } catch (err) {
     error.value = '网络异常，请检查网络后重试'
-    showToast('网络异常，请检查网络后重试', 2000, 'error')
+    showToast('网络异常，请检查网络后重试', 'error', 2500)
     console.error('激活码验证异常:', err)
   } finally {
     loading.value = false

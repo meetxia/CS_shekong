@@ -200,6 +200,12 @@ async function generateAIAnalysis(report, answers, basicInfo) {
       max_tokens: parseInt(config.max_tokens) || 2000
     };
 
+    // 🚀 【新增】阿里云百炼特殊参数支持
+    if (config.provider === 'aliyun_bailian') {
+      console.log('🚀 [阿里云百炼] 使用标准模式（暂不启用深度思考，避免流式处理复杂性）');
+      // 注意：enable_thinking需要stream=true，但流式处理较复杂，暂时使用标准模式
+    }
+
     console.log('📤 请求体:', JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(config.api_url, {
@@ -219,16 +225,27 @@ async function generateAIAnalysis(report, answers, basicInfo) {
     const data = await response.json();
     const aiResponse = data.choices?.[0]?.message?.content || '';
     
+    console.log('🔍 [调试] AI原始响应内容:', aiResponse);
+    
     // 解析JSON
     const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error('❌ [调试] 无法从AI响应中提取JSON:', aiResponse);
       throw new Error('AI返回格式错误，无法提取JSON');
     }
 
+    console.log('🔍 [调试] 提取的JSON字符串:', jsonMatch[0]);
     const analysis = JSON.parse(jsonMatch[0]);
+    console.log('🔍 [调试] 解析后的对象:', analysis);
     
     // 验证必要字段
     if (!analysis.typeName || !analysis.features || !analysis.rootCauses) {
+      console.error('❌ AI返回数据验证失败:', {
+        hasTypeName: !!analysis.typeName,
+        hasFeatures: !!analysis.features,
+        hasRootCauses: !!analysis.rootCauses,
+        actualKeys: Object.keys(analysis)
+      });
       throw new Error('AI返回数据不完整');
     }
 

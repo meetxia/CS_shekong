@@ -1,6 +1,6 @@
 let currentToast = null
 
-export function showToast(message, type = 'info', duration = 2000) {
+export function showToast(message, type = 'info', duration = 2500) {
   // 移除之前的toast
   if (currentToast && document.body.contains(currentToast)) {
     document.body.removeChild(currentToast)
@@ -62,15 +62,15 @@ export function showToast(message, type = 'info', duration = 2000) {
 }
 
 // 快捷方法
-export function showSuccess(message, duration = 2000) {
+export function showSuccess(message, duration = 2500) {
   showToast(message, 'success', duration)
 }
 
-export function showError(message, duration = 2000) {
+export function showError(message, duration = 2500) {
   showToast(message, 'error', duration)
 }
 
-export function showWarning(message, duration = 2000) {
+export function showWarning(message, duration = 2500) {
   showToast(message, 'warning', duration)
 }
 

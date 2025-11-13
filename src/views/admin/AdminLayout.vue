@@ -23,6 +23,9 @@
         <router-link class="admin-link" :to="{ name: 'AdminAIConfig' }">
           <span>🤖 AI配置</span>
         </router-link>
+        <router-link class="admin-link" :to="{ name: 'AdminXiaohongshu' }">
+          <span>📝 小红书文案</span>
+        </router-link>
       </nav>
     </aside>
 
@@ -52,6 +55,10 @@
         <router-link class="mobile-nav-item" :to="{ name: 'AdminAIConfig' }">
           <span class="nav-icon">🤖</span>
           <span class="nav-text">AI配置</span>
+        </router-link>
+        <router-link class="mobile-nav-item" :to="{ name: 'AdminXiaohongshu' }">
+          <span class="nav-icon">📝</span>
+          <span class="nav-text">小红书</span>
         </router-link>
       </nav>
     </header>

@@ -8,22 +8,39 @@
 export async function generatePersonalizedAnalysis(report, answers, basicInfo) {
   const startTime = Date.now()
 
+  // 并行生成本地报告作为备用方案
+  let localReportPromise = null
+  const generateLocalReportWithDelay = () => {
+    return new Promise((resolve) => {
+      // 延迟3秒后开始生成本地报告，给AI一些时间
+      setTimeout(() => {
+        console.log('开始并行生成本地备用报告...')
+        const localReport = generateEnhancedAnalysis(report, answers, basicInfo)
+        console.log('本地备用报告生成完成')
+        resolve(localReport)
+      }, 3000)
+    })
+  }
+
   try {
     // 生产环境使用空字符串（相对路径），开发环境使用完整地址
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''
 
-    console.log('🚀 [AI服务] 开始调用后端AI接口...')
-    console.log(`📡 [AI服务] 后端地址: ${apiBaseUrl || '(相对路径)'}/api/ai/generate`)
+    console.log('开始调用后端AI接口...')
+    console.log(`后端地址: ${apiBaseUrl || '(相对路径)'}/api/ai/generate`)
+
+    // 启动并行本地报告生成
+    localReportPromise = generateLocalReportWithDelay()
 
     // 调用后端AI接口
     const controller = new AbortController()
     const timeoutId = setTimeout(() => {
-      console.log('⏰ [AI服务] 请求超时，正在中断...')
+      console.log('请求超时，正在中断...')
       controller.abort()
-    }, 60000) // 60秒超时
+    }, 45000) // 缩短超时时间到45秒
 
     try {
-      console.log('📤 [AI服务] 正在发送请求到后端...')
+      console.log('正在发送请求到后端...')
 
       const response = await fetch(`${apiBaseUrl}/api/ai/generate`, {
         method: 'POST',
@@ -102,17 +119,36 @@ export async function generatePersonalizedAnalysis(report, answers, basicInfo) {
     console.error(`📄 [AI服务] 错误信息: ${error.message}`)
     console.error(`📄 [AI服务] 错误堆栈:`, error.stack)
 
-    // 如果是超时错误，给出更友好的提示
+    // 🚀 【优化】AI失败时，立即使用本地报告（如果已生成）或快速生成
     if (error.name === 'AbortError') {
-      console.warn('⏰ [AI服务] AI生成超时，将使用本地增强规则')
+      console.warn('⏰ [AI服务] AI生成超时，快速切换到本地增强规则')
     } else if (error.message.includes('Failed to fetch')) {
-      console.warn('🌐 [AI服务] 网络请求失败，请检查后端服务是否运行')
+      console.warn('🌐 [AI服务] 网络请求失败，快速切换到本地增强规则')
     } else if (error.message.includes('401') || error.message.includes('403')) {
-      console.warn('🔑 [AI服务] 认证失败')
+      console.warn('🔑 [AI服务] 认证失败，快速切换到本地增强规则')
     }
 
-    console.log('🔄 [AI服务] 将使用本地增强规则生成报告')
-    return null // 失败时返回null，使用原有的规则判断
+    // 🚀 【优化】尝试获取并行生成的本地报告
+    if (localReportPromise) {
+      try {
+        console.log('⚡ [AI服务] 尝试获取并行生成的本地报告...')
+        // 等待最多2秒获取本地报告
+        const localReport = await Promise.race([
+          localReportPromise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('本地报告获取超时')), 2000))
+        ])
+        console.log('✅ [AI服务] 成功获取并行生成的本地报告')
+        return localReport
+      } catch (localError) {
+        console.warn('⚠️ [AI服务] 并行本地报告未完成，立即生成新的本地报告')
+      }
+    }
+
+    // 🚀 【优化】立即生成本地报告
+    console.log('🔄 [AI服务] 立即生成本地增强报告...')
+    const quickLocalReport = generateEnhancedAnalysis(report, answers, basicInfo)
+    console.log('✅ [AI服务] 本地增强报告生成完成')
+    return quickLocalReport
   }
 }
   

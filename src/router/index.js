@@ -79,6 +79,12 @@ const routes = [
         name: 'AdminAIConfig',
         component: () => import('../views/admin/AdminAIConfig.vue'),
         meta: { title: 'AI配置', requiresAuth: true }
+      },
+      {
+        path: 'xiaohongshu',
+        name: 'AdminXiaohongshu',
+        component: () => import('../views/admin/AdminXiaohongshu.vue'),
+        meta: { title: '小红书文案生成', requiresAuth: true }
       }
     ]
   }

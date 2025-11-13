@@ -360,7 +360,7 @@ const handleBasicInfoClick = (questionId, value) => {
 // 开始测评
 const startAssessment = () => {
   if (!canStartAssessment.value) {
-    showToast('请完成必填项', 2000, 'warning')
+    showToast('请完成必填项', 'warning', 2000)
     return
   }
   
@@ -371,7 +371,7 @@ const startAssessment = () => {
   console.log('🆕 [开始测评] 已清除旧的AI预生成缓存和触发标记')
   
   showBasicInfoPage.value = false
-  showToast('开始测评，共35题', 2000, 'success')
+  showToast('开始测评，共35题', 'success', 2000)
 }
 
 // 保存基础信息
@@ -498,7 +498,7 @@ const clearAllAnswers = () => {
   
   // 强制更新视图
   nextTick(() => {
-    showToast('已清空所有答案', 1500, 'success')
+    showToast('已清空所有答案', 'success', 2000)
   })
 }
 
@@ -525,7 +525,7 @@ const fillRandomAnswers = () => {
     }
   }
   saveAnswers()
-  showToast('已随机填充所有答案', 1500, 'success')
+  showToast('已随机填充所有答案', 'success', 2000)
   console.log('🧹 [随机填充] 已清除AI预生成缓存')
 }
 
@@ -534,7 +534,7 @@ const jumpToQuestion = (questionNum) => {
   if (questionNum >= 1 && questionNum <= 35) {
     showBasicInfoPage.value = false
     currentQuestion.value = questionNum
-    showToast(`已跳转到第${questionNum}题`, 1000, 'info')
+    showToast(`已跳转到第${questionNum}题`, 'info', 1500)
     
     // 🤖 开发者工具跳题后也检查是否需要触发AI预生成
     setTimeout(() => {
@@ -557,7 +557,7 @@ const resetToBasicInfoPage = () => {
   
   // 强制更新视图
   nextTick(() => {
-    showToast('已重置到基础信息页', 1500, 'success')
+    showToast('已重置到基础信息页', 'success', 2000)
     console.log('🧹 [重置页面] 已清除AI预生成缓存和触发标记')
   })
 }
@@ -603,7 +603,7 @@ const prevQuestion = () => {
 // 下一题
 const nextQuestion = (isNormalFlow = false) => {
   if (!answers[currentQuestion.value]) {
-    showToast('请选择一个答案', 2000, 'warning')
+    showToast('请选择一个答案', 'warning', 2000)
     return
   }
   
@@ -613,13 +613,13 @@ const nextQuestion = (isNormalFlow = false) => {
     // 只在正常答题流程中显示进度提示，且每个提示只显示一次
     if (isNormalFlow) {
       if (currentQuestion.value === 10 && !progressToastShown.value.q10) {
-        showToast('已完成28%，继续加油！', 1500, 'success')
+        showToast('已完成28%，继续加油！', 'success', 2000)
         progressToastShown.value.q10 = true
       } else if (currentQuestion.value === 20 && !progressToastShown.value.q20) {
-        showToast('已完成57%，过半啦！', 1500, 'success')
+        showToast('已完成57%，过半啦！', 'success', 2000)
         progressToastShown.value.q20 = true
       } else if (currentQuestion.value === 30 && !progressToastShown.value.q30) {
-        showToast('已完成86%，马上完成！', 1500, 'success')
+        showToast('已完成86%，马上完成！', 'success', 2000)
         progressToastShown.value.q30 = true
       }
     }
@@ -648,7 +648,7 @@ const handleProgressClick = (event) => {
   
   const questionNum = calculateQuestionFromPosition(event)
   currentQuestion.value = questionNum
-  showToast(`跳转到第${questionNum}题`, 1500, 'info')
+  showToast(`跳转到第${questionNum}题`, 'info', 1500)
   
   // 🤖 跳题后也检查是否需要触发AI预生成
   setTimeout(() => {
@@ -668,7 +668,7 @@ const handleProgressDragStart = (event) => {
   
   const handleDragEnd = () => {
     isDragging.value = false
-    showToast(`已跳转到第${currentQuestion.value}题`, 1500, 'success')
+    showToast(`已跳转到第${currentQuestion.value}题`, 'success', 1500)
     document.removeEventListener('mousemove', handleDrag)
     document.removeEventListener('mouseup', handleDragEnd)
     document.removeEventListener('touchmove', handleDrag)
@@ -804,7 +804,7 @@ const preGenerateAIReport = async () => {
     console.log('═══════════════════════════════════════════')
     
     // 用户友好提示
-    showToast('✨ 专属报告已准备好！', 1500, 'success')
+    showToast('✨ 专属报告已准备好！', 'success', 2000)
   } catch (error) {
     const duration = Date.now() - startTime
     console.log('═══════════════════════════════════════════')
@@ -876,7 +876,7 @@ const submitAssessment = async () => {
   }
   
   if (unanswered.length > 0) {
-    showToast(`还有${unanswered.length}道题未作答`, 2000, 'warning')
+    showToast(`还有${unanswered.length}道题未作答`, 'warning', 2000)
     currentQuestion.value = unanswered[0]
     return
   }
@@ -890,7 +890,7 @@ const submitAssessment = async () => {
     console.log('[提交测评] 提交前状态检查:', statusBeforeSubmit)
     
     if (statusBeforeSubmit.expired) {
-      showToast('激活码已过期，无法提交', 2500, 'error')
+      showToast('激活码已过期，无法提交', 'error', 2500)
       submitting.value = false
       setTimeout(() => router.push('/activation'), 1500)
       return
@@ -906,7 +906,7 @@ const submitAssessment = async () => {
       console.log('═══════════════════════════════════════════')
       console.log('⚡ [提交测评] 使用预生成的专属报告，秒开！')
       console.log('═══════════════════════════════════════════')
-      showToast('正在生成专属分析报告...', 800, 'info')
+      showToast('正在生成专属分析报告...', 'info', 1200)
       await new Promise(resolve => setTimeout(resolve, 800)) // 短暂延迟，给用户反馈
       report = aiPreGeneratedReport
       aiPreGeneratedReport = null // 使用后清空
@@ -915,7 +915,7 @@ const submitAssessment = async () => {
       console.log('═══════════════════════════════════════════')
       console.log('⏳ [提交测评] AI预生成正在进行中，等待完成...')
       console.log('═══════════════════════════════════════════')
-      showToast('正在生成专属分析报告...', 2000, 'info')
+      showToast('正在生成专属分析报告...', 'info', 2000)
 
       // 等待预生成完成（最多等待30秒）
       const maxWaitTime = 30000 // 30秒
@@ -944,7 +944,7 @@ const submitAssessment = async () => {
       console.log('⏳ [提交测评] 实时生成专属报告...')
       console.log('💡 [提交测评] 提示：为了更快体验，AI会在第33题时预生成')
       console.log('═══════════════════════════════════════════')
-      showToast('正在生成专属分析报告...', 2000, 'info')
+      showToast('正在生成专属分析报告...', 'info', 2000)
 
       const startTime = Date.now()
 
@@ -963,7 +963,7 @@ const submitAssessment = async () => {
     
     // 检查效度
     if (!report.isValid) {
-      showToast(report.message, 3000, 'warning')
+      showToast(report.message, 'warning', 3000)
       submitting.value = false
       return
     }
@@ -997,7 +997,7 @@ const submitAssessment = async () => {
       ? `今日剩余${status.remainingToday}次 · 剩余${status.daysLeft}天`
       : ''
 
-    showToast(`测试完成！${remainingMsg}`, 2200, 'success')
+    showToast(`测试完成！${remainingMsg}`, 'success', 2500)
 
     // 跳转到报告页
     setTimeout(() => {
@@ -1005,7 +1005,7 @@ const submitAssessment = async () => {
     }, 1500)
   } catch (error) {
     console.error('生成报告失败:', error)
-    showToast('生成报告失败，请重试', 2000, 'error')
+    showToast('生成报告失败，请重试', 'error', 2000)
   } finally {
     submitting.value = false
   }
@@ -1018,7 +1018,7 @@ onMounted(async () => {
 
   // 检查激活码是否过期
   if (activationStatus.expired) {
-    showToast('激活码已过期，请重新激活', 2500, 'error')
+    showToast('激活码已过期，请重新激活', 'error', 2500)
     setTimeout(() => {
       router.push('/activation')
     }, 1500)
@@ -1034,7 +1034,7 @@ onMounted(async () => {
     
     // 先检查今日剩余次数（扣除前检查）
     if (activationStatus.remainingToday <= 0) {
-      showToast('今日测评次数已用完（3次/天），明天0点自动恢复', 2500, 'warning')
+      showToast('今日测评次数已用完（3次/天），明天0点自动恢复', 'warning', 2500)
       setTimeout(() => {
         router.push('/')
       }, 2000)
@@ -1056,7 +1056,7 @@ onMounted(async () => {
     if (!rec || !rec.recorded) {
       // ❌ 扣次数失败（可能是次数不足或激活码过期）
       const errorMsg = rec?.error || '无法开始新测评'
-      showToast(errorMsg, 2500, 'error')
+      showToast(errorMsg, 'error', 2500)
 
       // 根据具体情况跳转
       if (rec?.expired) {
@@ -1075,7 +1075,7 @@ onMounted(async () => {
     localStorage.removeItem('test_basic_info')
     // 注意：不删除 test_report，保留旧报告以便用户对比
 
-    showToast(`开始新测评！今日剩余${rec.remainingToday}次 · 剩余${rec.daysLeft}天`, 2000, 'success')
+    showToast(`开始新测评！今日剩余${rec.remainingToday}次 · 剩余${rec.daysLeft}天`, 'success', 2500)
     
   } else {
     // ========== 场景1：第一次测评（没有旧报告）==========
@@ -1095,7 +1095,7 @@ onMounted(async () => {
 
   // 如果有保存的进度，询问是否继续
   if (Object.keys(answers).length > 0 && currentQuestion.value > 1) {
-    showToast(`继续之前的测评（第${currentQuestion.value}题）`, 2000, 'info')
+    showToast(`继续之前的测评（第${currentQuestion.value}题）`, 'info', 2000)
   }
 })
 </script>

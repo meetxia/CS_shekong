@@ -481,7 +481,8 @@ export async function generateReport(answers, basicInfo = {}) {
     
     const personalizedType = await generatePersonalizedAnalysis(baseReport, answers, basicInfo)
     
-    if (personalizedType) {
+    // 🚀 【优化】现在AI服务总是返回结果（AI成功或本地增强），不再返回null
+    if (personalizedType && personalizedType.id === 'ai_generated') {
       console.log('═══════════════════════════════════════════')
       console.log('✅ [报告生成] AI深度分析成功！')
       console.log(`📝 [报告生成] 生成类型: ${personalizedType.name}`)
@@ -492,10 +493,20 @@ export async function generateReport(answers, basicInfo = {}) {
       type = personalizedType
       baseReport.type = personalizedType
       baseReport.aiGenerated = true // 内部标记，用户看不到
-    } else {
-      // 深度分析失败，使用本地增强规则
+    } else if (personalizedType) {
+      // 使用了本地增强规则
       console.log('═══════════════════════════════════════════')
-      console.log('⚠️ [报告生成] AI分析未成功，使用备用分析引擎')
+      console.log('⚡ [报告生成] 使用本地增强分析（AI超时/失败后快速生成）')
+      console.log(`📝 [报告生成] 生成类型: ${personalizedType.name}`)
+      console.log(`✨ [报告生成] 特征数量: ${personalizedType.features.length}`)
+      console.log('═══════════════════════════════════════════')
+      type = personalizedType
+      baseReport.type = personalizedType
+      baseReport.aiGenerated = false
+    } else {
+      // 兜底方案：如果还是返回null，使用本地增强规则
+      console.log('═══════════════════════════════════════════')
+      console.log('⚠️ [报告生成] 意外情况，使用兜底分析引擎')
       console.log('🔄 [报告生成] 正在生成本地增强分析...')
       console.log('═══════════════════════════════════════════')
       const enhancedType = generateEnhancedAnalysis(baseReport, answers, basicInfo)

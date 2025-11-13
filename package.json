@@ -17,6 +17,7 @@
     "@supabase/supabase-js": "^2.78.0",
     "@vicons/antd": "^0.13.0",
     "@vicons/ionicons5": "^0.13.0",
+    "axios": "^1.13.2",
     "dayjs": "^1.11.10",
     "dom-to-image-more": "^3.7.2",
     "echarts": "^5.4.3",

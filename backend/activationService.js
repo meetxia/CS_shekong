@@ -84,6 +84,19 @@ async function verifyActivationCode(inputCode, deviceId = null) {
       daysLeft = Math.max(0, Math.floor(msLeft / (24 * 60 * 60 * 1000)));
     }
 
+    // 🔧 【关键修复】在所有情况下都检查激活码是否已过期
+    // 如果有任何设备已激活过，且最早的过期时间已到，则整个激活码过期
+    if (earliestExpiresAt && earliestExpiresAt < new Date()) {
+      return { 
+        valid: false, 
+        error: '激活码已过期，有效期已结束',
+        daysLeft: 0,
+        remainingToday: 0,
+        dailyLimit: code.daily_limit,
+        isActivated: allRecordsForCode.length > 0
+      };
+    }
+
     // 如果今日使用次数已达上限，返回详细信息
     if (totalUsedToday >= code.daily_limit) {
       return {
@@ -103,11 +116,8 @@ async function verifyActivationCode(inputCode, deviceId = null) {
     );
 
     if (records.length > 0) {
-      // 当前设备已激活，检查是否过期（基于最早的激活记录）
+      // 当前设备已激活，返回激活信息（过期检查已在前面统一处理）
       const record = records[0];
-      if (earliestExpiresAt && earliestExpiresAt < new Date()) {
-        return { valid: false, error: '您的激活已过期' };
-      }
 
       return {
         valid: true,

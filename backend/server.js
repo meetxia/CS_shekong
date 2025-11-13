@@ -18,6 +18,7 @@ const activationRouter = require('./routes/activationRoutes');
 const aiRouter = require('./routes/aiRoutes');
 const statsRouter = require('./routes/statsRoutes');
 const aiConfigRouter = require('./routes/aiConfigRoutes');
+const xiaohongshuRouter = require('./routes/xiaohongshuRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -90,6 +91,7 @@ app.get('/health', (req, res) => {
 app.use('/api/admin', authRouter);      // 管理员认证路由
 app.use('/api/admin', adminRouter);     // 管理后台路由
 app.use('/api/admin/ai-config', aiConfigRouter); // AI配置管理路由
+app.use('/api/admin/xiaohongshu', xiaohongshuRouter); // 小红书文案生成路由
 app.use('/api/activation/verify', activationLimiter); // 激活码验证限流
 app.use('/api/activation', activationRouter); // 激活码验证路由
 app.use('/api/ai/generate', aiLimiter); // AI生成限流
