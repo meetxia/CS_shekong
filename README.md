@@ -157,7 +157,7 @@ node initAdmin.js  # 创建管理员账号
 
 ```bash
 # 终端1：启动后端服务
-cd backend
+cd backend ; npm run dev
 npm run dev
 
 # 终端2：启动前端服务

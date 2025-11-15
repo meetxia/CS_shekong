@@ -11,6 +11,43 @@
         <div class="card">
           <h3 class="section-title">生成设置</h3>
           
+          <!-- AI配置选择 -->
+          <div class="form-group">
+            <label>🤖 AI配置选择</label>
+            <div class="ai-config-section">
+              <select 
+                v-model="selectedAIConfig" 
+                class="ai-config-select"
+                :disabled="loadingConfigs"
+              >
+                <option value="" disabled>
+                  {{ loadingConfigs ? '加载中...' : '请选择AI配置' }}
+                </option>
+                <option 
+                  v-for="config in aiConfigs" 
+                  :key="config.id" 
+                  :value="config.id"
+                >
+                  {{ config.provider }} - {{ config.model }}
+                  {{ config.is_active ? '(当前激活)' : '' }}
+                </option>
+              </select>
+              <div class="ai-config-info" v-if="selectedAIConfig">
+                <div class="config-details">
+                  <span class="config-provider">
+                    {{ getSelectedConfigInfo()?.provider }}
+                  </span>
+                  <span class="config-model">
+                    {{ getSelectedConfigInfo()?.model }}
+                  </span>
+                  <span class="config-status" :class="{ active: getSelectedConfigInfo()?.is_active }">
+                    {{ getSelectedConfigInfo()?.is_active ? '激活中' : '备用' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- 快捷模板 -->
           <div class="form-group">
             <label>📑 快捷模板</label>
@@ -179,6 +216,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { getAIConfigs } from '@/utils/aiConfigApi'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
 
@@ -190,22 +228,61 @@ const isGenerating = ref(false)
 const generatedContent = ref(null)
 const errorMessage = ref('')
 const copiedField = ref(null)
+// 新增：AI配置相关状态
+const aiConfigs = ref([])
+const selectedAIConfig = ref(null)
+const loadingConfigs = ref(false)
 
-// 获取模板列表
+// 获取模板列表和AI配置
 onMounted(async () => {
   try {
     const token = localStorage.getItem('admin_token')
-    const response = await axios.get(`${API_BASE}/api/admin/xiaohongshu/templates`, {
+    
+    // 获取模板列表
+    const templatesResponse = await axios.get(`${API_BASE}/api/admin/xiaohongshu/templates`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     
-    if (response.data.success) {
-      templates.value = response.data.data
+    if (templatesResponse.data.success) {
+      templates.value = templatesResponse.data.data
     }
+    
+    // 获取AI配置列表
+    await loadAIConfigs()
   } catch (error) {
-    console.error('获取模板失败:', error)
+    console.error('初始化失败:', error)
   }
 })
+
+// 加载AI配置列表
+async function loadAIConfigs() {
+  try {
+    loadingConfigs.value = true
+    const response = await getAIConfigs()
+    
+    if (response.success) {
+      aiConfigs.value = response.data
+      // 默认选择当前激活的配置
+      const activeConfig = aiConfigs.value.find(config => config.is_active)
+      if (activeConfig) {
+        selectedAIConfig.value = activeConfig.id
+      } else if (aiConfigs.value.length > 0) {
+        selectedAIConfig.value = aiConfigs.value[0].id
+      }
+    }
+  } catch (error) {
+    console.error('获取AI配置失败:', error)
+    errorMessage.value = '获取AI配置失败，请检查网络连接'
+  } finally {
+    loadingConfigs.value = false
+  }
+}
+
+// 获取选中的AI配置信息
+function getSelectedConfigInfo() {
+  if (!selectedAIConfig.value) return null
+  return aiConfigs.value.find(config => config.id === selectedAIConfig.value)
+}
 
 // 选择模板
 function selectTemplate(template) {
@@ -217,6 +294,12 @@ function selectTemplate(template) {
 async function generateContent() {
   if (isGenerating.value) return
   
+  // 验证是否选择了AI配置
+  if (!selectedAIConfig.value) {
+    errorMessage.value = '请先选择AI配置'
+    return
+  }
+  
   errorMessage.value = ''
   isGenerating.value = true
   generatedContent.value = null
@@ -227,7 +310,8 @@ async function generateContent() {
       `${API_BASE}/api/admin/xiaohongshu/generate`,
       {
         userPrompt: userPrompt.value.trim(),
-        contentType: selectedTemplate.value
+        contentType: selectedTemplate.value,
+        aiConfigId: selectedAIConfig.value // 传递选择的AI配置ID
       },
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -433,6 +517,80 @@ function copyFullContent() {
   border-color: var(--primary);
   background: var(--primary);
   color: white;
+}
+
+/* AI配置选择样式 */
+.ai-config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-config-select {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-section);
+  color: var(--text-title);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.ai-config-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.ai-config-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ai-config-info {
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.config-details {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.config-provider {
+  padding: 4px 8px;
+  background: var(--primary);
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.config-model {
+  padding: 4px 8px;
+  background: var(--bg-section);
+  color: var(--text-title);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.config-status {
+  padding: 4px 8px;
+  background: #f3f4f6;
+  color: #6b7280;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.config-status.active {
+  background: #dcfce7;
+  color: #16a34a;
 }
 
 .prompt-input {
